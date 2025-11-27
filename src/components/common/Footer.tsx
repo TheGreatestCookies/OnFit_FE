@@ -1,4 +1,4 @@
-import ReactIcon from "@/components/icon/ReactIcon";
+import ReactIcon from '@/components/icon/ReactIcon';
 const Footer = () => {
   return (
     <div className="w-full h-16 bg-white">

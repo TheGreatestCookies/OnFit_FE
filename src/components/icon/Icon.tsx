@@ -14,13 +14,7 @@ interface IconProps {
  */
 const Icon = ({ src, alt = 'icon', size = 24, className = '' }: IconProps) => {
   return (
-    <img
-      src={src}
-      alt={alt}
-      width={size}
-      height={size}
-      className={`inline-block ${className}`}
-    />
+    <img src={src} alt={alt} width={size} height={size} className={`inline-block ${className}`} />
   );
 };
 

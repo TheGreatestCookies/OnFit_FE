@@ -1,4 +1,4 @@
-import Container from "./Container";
+import Container from './Container';
 
 interface ScreenProps {
   children: React.ReactNode;
@@ -12,9 +12,7 @@ interface ScreenProps {
 const Screen = ({ children }: ScreenProps) => {
   return (
     <div className="w-full min-h-screen bg-gray-50 flex justify-center">
-      <Container>
-        {children}
-      </Container>
+      <Container>{children}</Container>
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import icon from "@/assets/react.svg";
+import icon from '@/assets/react.svg';
 const ReactIcon = () => {
   return (
     <div>
@@ -7,4 +7,4 @@ const ReactIcon = () => {
   );
 };
 
-export default ReactIcon;   
+export default ReactIcon;
