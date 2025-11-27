@@ -1,5 +1,6 @@
 import HomeContent from '@/pages/Home/components/HomeContent';
 import Screen from '@/components/common/Screen';
+import Header from '@/components/common/Header';
 /**
  * Home page component
  * @returns {JSX.Element}
@@ -7,6 +8,7 @@ import Screen from '@/components/common/Screen';
 const HomePage = () => {
   return (
     <Screen>
+      <Header />
       <HomeContent />
     </Screen>
   );
