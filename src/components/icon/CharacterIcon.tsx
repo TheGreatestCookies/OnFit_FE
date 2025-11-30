@@ -3,6 +3,7 @@ interface CharacterIconProps {
   alt?: string;
   size?: number;
   className?: string;
+  style?: React.CSSProperties;
 }
 
 /**
@@ -12,8 +13,8 @@ interface CharacterIconProps {
  * @param size - 아이콘 크기 (px)
  * @param className - 추가 CSS 클래스
  */
-const CharacterIcon = ({ src, alt = 'icon', size = 24, className = '' }: CharacterIconProps) => {
-  const iconPath = `/characters/${src.charAt(0).toUpperCase() + src.slice(1)}.svg`;
+const CharacterIcon = ({ src, alt = 'icon', size = 24, className = '', style }: CharacterIconProps) => {
+  const iconPath = `/characters/${src.charAt(0) + src.slice(1)}.svg`;
   return (
     <img
       src={iconPath}
@@ -21,6 +22,7 @@ const CharacterIcon = ({ src, alt = 'icon', size = 24, className = '' }: Charact
       width={size}
       height={size}
       className={`inline-block ${className}`}
+      style={style}
     />
   );
 };
