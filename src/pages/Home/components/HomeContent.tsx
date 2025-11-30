@@ -1,7 +1,7 @@
 const HomeContent = () => {
   return (
     <div className="px-4 py-6">
-      <div className="bg-blue-500 h-[500px] rounded-lg flex items-center justify-center text-white text-xl">
+      <div className="bg-blue-500  rounded-lg flex items-center justify-center text-white text-xl">
         지도 영역
       </div>
       <div className="mt-4 space-y-2">

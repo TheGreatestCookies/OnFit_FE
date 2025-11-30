@@ -1,5 +1,4 @@
-import React from 'react';
-interface IconProps {
+interface LogoIconProps {
   src: string;
   alt?: string;
   size?: number;
@@ -13,8 +12,8 @@ interface IconProps {
  * @param size - 아이콘 크기 (px)
  * @param className - 추가 CSS 클래스
  */
-const Icon = ({ src, alt = 'icon', size = 24, className = '' }: IconProps) => {
-  const iconPath = `/characters/${src.charAt(0).toUpperCase() + src.slice(1)}.svg`;
+const LogoIcon = ({ src, alt = 'icon', size = 24, className = '' }: LogoIconProps) => {
+  const iconPath = `/${src.charAt(0) + src.slice(1)}.svg`;
   return (
     <img
       src={iconPath}
@@ -26,4 +25,4 @@ const Icon = ({ src, alt = 'icon', size = 24, className = '' }: IconProps) => {
   );
 };
 
-export default Icon;
+export default LogoIcon;

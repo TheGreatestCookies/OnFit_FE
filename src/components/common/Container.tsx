@@ -8,7 +8,9 @@ interface ContainerProps {
  * @returns {JSX.Element}
  */
 const Container = ({ children }: ContainerProps) => {
-  return <div className="w-full max-w-[480px] min-h-screen bg-white shadow-lg">{children}</div>;
+  return (
+    <div className="w-full max-w-[480px] min-h-screen bg-white shadow-lg relative">{children}</div>
+  );
 };
 
 export default Container;
