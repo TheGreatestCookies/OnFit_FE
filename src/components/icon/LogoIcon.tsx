@@ -6,7 +6,7 @@ interface LogoIconProps {
 }
 
 /**
- * Icon 컴포넌트 - SVG/이미지 아이콘을 감싸는 컴포넌트
+ * LogoIcon 컴포넌트 - SVG/이미지 아이콘을 감싸는 컴포넌트
  * @param src - 아이콘 이미지 경로
  * @param alt - 대체 텍스트
  * @param size - 아이콘 크기 (px)
