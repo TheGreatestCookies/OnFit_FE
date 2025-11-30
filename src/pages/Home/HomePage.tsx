@@ -10,7 +10,7 @@ const HomePage = () => {
   return (
     <Screen>
       <Header />
-      <HomeContent />
+      <HomeContent image="/home.png"  />
       <Footer />
     </Screen>
   );

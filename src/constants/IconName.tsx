@@ -7,6 +7,7 @@ const IconName = {
   COMMUNITY: 'community',
   NOT_FOUND: 'not-found',
   LOGO: 'logo',
+  LOGO2: 'logo2',
   TIGER: 'tiger',
   DOG: 'dog',
   CAT: 'cat',
