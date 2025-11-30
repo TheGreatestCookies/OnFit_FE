@@ -1,10 +1,15 @@
+import Header from '@/components/common/Header';
 import MyContent from '@/pages/My/components/MyContent';
+import Screen from '@/components/common/Screen';
+import Footer from '@/components/common/Footer';
 
 const MyPage = () => {
   return (
-    <div>
+    <Screen>
+      <Header />
       <MyContent />
-    </div>
+      <Footer />
+    </Screen>
   );
 };
 

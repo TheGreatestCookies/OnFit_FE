@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ROUTES_PATH } from '@/constants/routes';
+import Icon from '../icon/Icon';
 
 interface NavItem {
   icon: string;
@@ -39,12 +40,10 @@ const Footer = () => {
                 active ? 'text-black' : 'text-gray-400'
               }`}
             >
-              <div className={`w-6 h-6 transition-all ${active ? 'brightness-0' : 'brightness-0 opacity-40'}`}>
-                <img
-                  src={`/icons/${item.icon}.svg`}
-                  alt={item.label}
-                  className="w-full h-full"
-                />
+              <div
+                className={`w-6 h-6 transition-all ${active ? 'brightness-0' : 'brightness-0 opacity-40'}`}
+              >
+                <Icon src={item.icon} alt={item.icon} />
               </div>
               <span className={`text-xs ${active ? 'font-semibold' : 'font-normal'}`}>
                 {item.label}
