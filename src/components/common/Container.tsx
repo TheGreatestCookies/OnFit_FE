@@ -9,7 +9,9 @@ interface ContainerProps {
  */
 const Container = ({ children }: ContainerProps) => {
   return (
-    <div className="w-full max-w-[480px] min-h-screen bg-white shadow-lg relative">{children}</div>
+    <div className="w-full max-w-[480px] h-screen bg-white shadow-lg relative overflow-hidden">
+      {children}
+    </div>
   );
 };
 

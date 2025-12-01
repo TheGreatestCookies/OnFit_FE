@@ -3,7 +3,6 @@ const IconName = {
   HOME: 'home',
   MY_PAGE: 'my-page',
   VOUCHER: 'voucher',
-  CLUB: 'club',
   COMMUNITY: 'community',
   NOT_FOUND: 'not-found',
   LOGO: 'logo',
