@@ -2,6 +2,9 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import type { VoucherItem } from '@/api/voucher';
 import type { FilterProps } from '@/types/voucher';
 import { SPORTS_ICONS } from '@/constants/SportsIcons';
+import LocationIcon from '@/components/icon/LocationIcon';
+import FacilityIcon from '@/components/icon/FacilityIcon';
+import Icon from '@/components/icon/Icon';
 
 // 마커 데이터 타입
 interface MarkerData {
@@ -538,7 +541,7 @@ const VoucherMapContent = ({ vouchers, filterProps, userLocation }: VoucherMapCo
                         setSheetOffset(MIDDLE_OFFSET);
                       }}
                       className={`relative rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer ${isSelected
-                        ? 'bg-red-50 border-2 border-red-500'
+                        ? 'bg-gray-50 border-2 border-red-500'
                         : 'bg-gray-50 border border-gray-200'
                         }`}
                     >
@@ -562,21 +565,21 @@ const VoucherMapContent = ({ vouchers, filterProps, userLocation }: VoucherMapCo
 
                       <div className="text-sm text-gray-600 space-y-1">
                         <p className="flex items-center gap-1">
-                          <span>📍</span>
+                          <LocationIcon className="w-4 h-4 text-red-500" />
                           <span>
                             {voucher.area} - {voucher.sigunguName}
                           </span>
                         </p>
                         <p className="flex items-center gap-1">
-                          <span>🏢</span>
+                          <FacilityIcon className="w-4 h-4 text-gray-400" />
                           <span>{voucher.facilityName}</span>
                         </p>
                         <p className="flex items-center gap-1">
-                          <span>🏃</span>
+                          <Icon src="person" size={16} />
                           <span>{voucher.sports}</span>
                         </p>
                         <p className="flex items-center gap-1">
-                          <span>💰</span>
+                          <Icon src="money" size={16} />
                           <span
                             className={`font-semibold ${isSelected ? 'text-red-600' : 'text-blue-600'}`}
                           >
