@@ -28,7 +28,7 @@ const Footer = () => {
   };
 
   return (
-    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] h-16 bg-white border-t border-gray-200 z-10">
+    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] h-16 bg-white border-t border-gray-200 z-30">
       <div className="w-full h-full flex items-center justify-around px-4">
         {NAV_ITEMS.map((item) => {
           const active = isActive(item.path);

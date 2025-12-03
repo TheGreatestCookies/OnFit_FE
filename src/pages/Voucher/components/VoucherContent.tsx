@@ -1,99 +1,151 @@
-import { useState, useEffect, useRef } from 'react';
+
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { fetchVouchers } from '@/api/voucher';
-import type { VoucherItem } from '@/api/voucher';
 
-// 지역 옵션
-const AREA_OPTIONS = [
-  '서울',
-  '부산',
-  '대구',
-  '인천',
-  '광주',
-  '대전',
-  '울산',
-  '세종',
-  '경기',
-  '강원',
-  '충북',
-  '충남',
-  '전북',
-  '전남',
-  '경북',
-  '경남',
-  '제주',
-];
+import VoucherMapContent from './VoucherMapContent';
+import { AREA_OPTIONS } from '@/constants/AreaOptions';
+import { SPORTS_OPTIONS } from '@/constants/SportsOptions';
 
-// 종목 옵션
-const SPORTS_OPTIONS = [
-  '헬스',
-  '수영',
-  '요가',
-  '탁구',
-  '배드민턴',
-  '필라테스',
-  '태권도',
-  '클라이밍',
-  '골프',
-  '테니스',
-  '스쿼시',
-  '농구',
-  '축구',
-];
-
+/**
+ * 바우처 내용 컴포넌트
+ * 지도 뷰와 리스트 뷰를 전환할 수 있습니다.
+ * 지도 뷰를 default로 설정하는게 더 나을 것 같다.
+ * 지도 뷰에서 마커를 클릭하면 해당 바우처의 상세 정보를 표시.
+ * 네이버 지도 처럼 아래에 바우처 목록을 제시하고
+ * 상단에 검색 탭이 있어서 원하는 바우처를 검색할 수 있도록 하고
+ * 필터 또한 제공
+ * 마커 핀 초기화 위치는 자기 자신의 위치이고, 제일 처음에는 자기 주변에 존재하는 것들 핀으로 표시.
+ * @returns VoucherContent 컴포넌트
+ */
 const VoucherContent = () => {
-  const [vouchers, setVouchers] = useState<VoucherItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [page, setPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [isList, setIsList] = useState(true);
-  const mapRef = useRef<HTMLDivElement | null>(null);
-  // 필터 상태
+  // 필터 상태 (자연어로 저장)
   const [area, setArea] = useState('');
-  const [sports, setSports] = useState('');
+  const [sports, setSports] = useState('수영');
+  const [isLocationDetected, setIsLocationDetected] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
+  // 사용자 위치 기반 초기 지역 설정
   useEffect(() => {
-    const loadVouchers = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await fetchVouchers(area || undefined, sports || undefined, page, 5);
-        setVouchers(data.content);
-        setTotalPages(data.totalPages);
-      } catch (err) {
-        setError('바우처 목록을 불러오는데 실패했습니다.');
-        console.error(err);
-      } finally {
-        setLoading(false);
+    const detectUserLocation = () => {
+      if (!navigator.geolocation) {
+        console.log('⚠️ Geolocation을 지원하지 않는 브라우저입니다.');
+        setIsLocationDetected(true);
+        return;
       }
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          console.log('📍 사용자 위치:', { latitude, longitude });
+          setUserLocation({ lat: latitude, lng: longitude });
+
+          // 간단한 위도/경도 기반 지역 추정
+          const estimateRegionFromCoords = (lat: number, lng: number): string => {
+            // 대한민국 주요 지역 좌표 범위 (대략적)
+            if (lat >= 37.4 && lat <= 37.7 && lng >= 126.8 && lng <= 127.2) return '서울특별시';
+            if (lat >= 35.0 && lat <= 35.3 && lng >= 128.9 && lng <= 129.3) return '부산광역시';
+            if (lat >= 35.7 && lat <= 36.0 && lng >= 128.5 && lng <= 128.8) return '대구광역시';
+            if (lat >= 37.3 && lat <= 37.6 && lng >= 126.6 && lng <= 126.8) return '인천광역시';
+            if (lat >= 35.1 && lat <= 35.2 && lng >= 126.8 && lng <= 127.0) return '광주광역시';
+            if (lat >= 36.3 && lat <= 36.4 && lng >= 127.3 && lng <= 127.5) return '대전광역시';
+            if (lat >= 35.5 && lat <= 35.6 && lng >= 129.3 && lng <= 129.4) return '울산광역시';
+            if (lat >= 36.4 && lat <= 36.6 && lng >= 127.2 && lng <= 127.3) return '세종특별자치시';
+            if (lat >= 36.9 && lat <= 38.3 && lng >= 126.4 && lng <= 127.5) return '경기도  ';
+            if (lat >= 37.0 && lat <= 38.6 && lng >= 127.5 && lng <= 129.4) return '강원도';
+            if (lat >= 36.3 && lat <= 37.3 && lng >= 127.4 && lng <= 128.5) return '충청북도';
+            if (lat >= 36.0 && lat <= 37.0 && lng >= 126.3 && lng <= 127.5) return '충청남도';
+            if (lat >= 35.6 && lat <= 36.0 && lng >= 126.7 && lng <= 127.7) return '전라북도';
+            if (lat >= 34.2 && lat <= 35.4 && lng >= 126.2 && lng <= 127.5) return '전라남도';
+            if (lat >= 35.9 && lat <= 37.2 && lng >= 128.1 && lng <= 129.6) return '경상북도';
+            if (lat >= 34.7 && lat <= 35.9 && lng >= 127.7 && lng <= 129.3) return '경상남도';
+            if (lat >= 33.2 && lat <= 33.6 && lng >= 126.1 && lng <= 126.9) return '제주특별자치도';
+            return ''; // 범위 밖
+          };
+
+          const detectedArea = estimateRegionFromCoords(latitude, longitude);
+
+          if (detectedArea) {
+            setArea(detectedArea);
+            console.log('✅ 감지된 지역:', detectedArea);
+          } else {
+            console.log('⚠️ 지역 감지 실패, 전체 검색으로 진행');
+          }
+
+          setIsLocationDetected(true);
+        },
+        (error) => {
+          console.log('⚠️ 위치 정보를 가져올 수 없습니다:', error.message);
+          setIsLocationDetected(true);
+        },
+        {
+          timeout: 10000,
+          maximumAge: 0,
+        },
+      );
     };
 
-    loadVouchers();
-  }, [area, sports, page]);
+    detectUserLocation();
+  }, []);
 
-  // 네이버 맵 초기화
+  // 리스트용 데이터 (페이지네이션)
+  const {
+    data: listData,
+    isLoading: isListLoading,
+    isError: isListError
+  } = useQuery({
+    queryKey: ['vouchers', 'list', area, sports, page],
+    queryFn: () => fetchVouchers(area || undefined, sports || undefined, page, 10),
+    enabled: isLocationDetected,
+    staleTime: 1000 * 60 * 5, // 5분 캐시
+  });
+
+  // 지도용 데이터 (전체)
+  const {
+    data: mapData,
+    isLoading: isMapLoading
+  } = useQuery({
+    queryKey: ['vouchers', 'map', area, sports],
+    queryFn: () => fetchVouchers(area || undefined, sports || undefined, 0, 2000),
+    enabled: isLocationDetected,
+    staleTime: 1000 * 60 * 5, // 5분 캐시
+  });
+
+
+  const totalPages = listData?.totalPages || 0;
+  const mapVouchers = mapData?.content || [];
+  const loading = isListLoading || isMapLoading;
+  const error = isListError ? '바우처 목록을 불러오는데 실패했습니다.' : null;
+
+  // 초기 로딩 상태 관리
   useEffect(() => {
-    if (!isList && mapRef.current && window.naver?.maps) {
-      const mapOptions = {
-        center: new window.naver.maps.LatLng(37.5665, 126.978), // 서울시청 좌표
-        zoom: 13,
-      };
-      // 네이버 맵 인스턴스 생성 (나중에 마커 추가 시 사용)
-      new window.naver.maps.Map(mapRef.current, mapOptions);
-
-      // 바우처 위치에 마커 표시 (나중에 구현)
-      // vouchers.forEach((voucher) => {
-      //   if (voucher.addr1) {
-      //     // 주소를 좌표로 변환하는 것은 Geocoding API가 필요합니다
-      //   }
-      // });
+    if (isLocationDetected && !isListLoading && !isMapLoading && isInitialLoad) {
+      setIsInitialLoad(false);
+      console.log('✅ 초기 데이터 로드 완료:', {
+        area: area || '전체',
+        sports: sports || '전체',
+        page,
+        리스트결과: `${listData?.content.length || 0} 개`,
+        지도결과: `${mapData?.content.length || 0} 개`,
+        전체: `${listData?.totalElements || 0} 개`,
+      });
     }
-  }, [isList, vouchers]);
+  }, [isLocationDetected, isListLoading, isMapLoading, isInitialLoad, area, sports, page, listData, mapData]);
 
-  if (loading) {
+
+  // 초기 로딩만 전체 화면 표시
+  if (!isLocationDetected || (isInitialLoad && loading)) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="text-gray-500">로딩 중...</div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4" />
+          <div className="text-gray-600 font-medium">
+            {!isLocationDetected ? '📍 위치 정보를 확인하는 중...' : '로딩 중...'}
+          </div>
+          <p className="text-sm text-gray-400 mt-2">주변 스포츠바우처를 찾고 있습니다</p>
+        </div>
       </div>
     );
   }
@@ -106,120 +158,29 @@ const VoucherContent = () => {
     );
   }
 
+  // 필터 props 그룹화
+  const filterProps = {
+    area,
+    sports,
+    setArea,
+    setSports,
+    page,
+    setPage,
+    totalPages,
+    areaOptions: AREA_OPTIONS,
+    sportsOptions: SPORTS_OPTIONS,
+  };
+
   return (
     <div className="absolute top-16 bottom-16 left-0 right-0 w-full overflow-y-auto px-4 py-6">
-      <button onClick={() => setIsList(!isList)}>{isList ? '지도 뷰' : '리스트 뷰'}</button>
-      {isList ? (
-        <>
-          {/* 필터 영역 */}
-          <div className="mb-4 space-y-2">
-            <select
-              value={area}
-              onChange={(e) => {
-                setArea(e.target.value);
-                setPage(0);
-              }}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            >
-              <option value="">전체 지역</option>
-              {AREA_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-            <select
-              value={sports}
-              onChange={(e) => {
-                setSports(e.target.value);
-                setPage(0);
-              }}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            >
-              <option value="">전체 종목</option>
-              {SPORTS_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* 바우처 목록 */}
-          {vouchers.length === 0 ? (
-            <div className="text-center py-10 text-gray-500">검색 결과가 없습니다.</div>
-          ) : (
-            <div className="space-y-4">
-              {vouchers.map((voucher) => (
-                <div
-                  key={voucher.id}
-                  className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                >
-                  <h3 className="font-bold text-lg mb-2 text-gray-800">{voucher.name}</h3>
-                  <div className="text-sm text-gray-600 space-y-1">
-                    <p className="flex items-center gap-1">
-                      <span>📍</span>
-                      <span>
-                        {voucher.area} - {voucher.sigunguName}
-                      </span>
-                    </p>
-                    <p className="flex items-center gap-1">
-                      <span>🏢</span>
-                      <span>{voucher.facilityName}</span>
-                    </p>
-                    <p className="flex items-center gap-1">
-                      <span>🏃</span>
-                      <span>{voucher.sports}</span>
-                    </p>
-                    <p className="flex items-center gap-1">
-                      <span>💰</span>
-                      <span className="font-semibold text-blue-600">
-                        {voucher.price.toLocaleString()}원
-                      </span>
-                    </p>
-                    {voucher.telephone && (
-                      <p className="flex items-center gap-1">
-                        <span>📞</span>
-                        <span>{voucher.telephone}</span>
-                      </p>
-                    )}
-                    <p className="text-xs text-gray-500 mt-2">{voucher.addr1}</p>
-                    {voucher.addr2 && <p className="text-xs text-gray-500">{voucher.addr2}</p>}
-                  </div>
-                  <div className="mt-3 pt-3 border-t border-gray-100">
-                    <span className="text-xs text-gray-400">회원수: {voucher.memberCount}명</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* 페이지네이션 */}
-          {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-2 mt-6">
-              <button
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
-                disabled={page === 0}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg disabled:opacity-50 disabled:bg-gray-300 transition-colors"
-              >
-                이전
-              </button>
-              <span className="text-sm text-gray-600 px-4">
-                {page + 1} / {totalPages}
-              </span>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                disabled={page === totalPages - 1}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg disabled:opacity-50 disabled:bg-gray-300 transition-colors"
-              >
-                다음
-              </button>
-            </div>
-          )}
-        </>
-      ) : (
-        <div ref={mapRef} id="map" className="w-full h-[60vh]" />
+      {/* 필터 변경 중 로딩 표시 */}
+      {loading && !isInitialLoad && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-2 rounded-full shadow-lg z-50 text-sm animate-pulse">
+          🔄 업데이트 중...
+        </div>
       )}
+
+      <VoucherMapContent vouchers={mapVouchers} filterProps={filterProps} userLocation={userLocation} />
     </div>
   );
 };
