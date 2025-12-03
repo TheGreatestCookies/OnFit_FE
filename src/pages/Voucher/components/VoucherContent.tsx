@@ -172,7 +172,7 @@ const VoucherContent = () => {
   };
 
   return (
-    <div className="absolute top-16 bottom-16 left-0 right-0 w-full overflow-y-auto px-4 py-6">
+    <div className="absolute top-16 bottom-16 left-0 right-0 w-full bg-gray-50">
       {/* 필터 변경 중 로딩 표시 */}
       {loading && !isInitialLoad && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-2 rounded-full shadow-lg z-50 text-sm animate-pulse">

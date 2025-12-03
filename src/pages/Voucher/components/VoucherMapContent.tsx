@@ -412,7 +412,7 @@ const VoucherMapContent = ({ vouchers, filterProps, userLocation }: VoucherMapCo
   };
 
   return (
-    <div className="relative w-full h-[70vh]">
+    <div className="relative w-full h-full">
       {isGeocodingLoading ? (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-50 rounded-lg">
           <div className="text-center">
