@@ -1,9 +1,9 @@
-
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import { fetchVouchers } from '@/api/voucher';
 
 import VoucherMapContent from './VoucherMapContent';
+import VoucherListContent from './VoucherListContent';
 import { AREA_OPTIONS } from '@/constants/AreaOptions';
 import { SPORTS_OPTIONS } from '@/constants/SportsOptions';
 
@@ -20,7 +20,7 @@ import { SPORTS_OPTIONS } from '@/constants/SportsOptions';
  */
 const VoucherContent = () => {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-  const [page, setPage] = useState(0);
+  const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   // 필터 상태 (자연어로 저장)
   const [area, setArea] = useState('');
   const [sports, setSports] = useState('수영');
@@ -90,31 +90,35 @@ const VoucherContent = () => {
     detectUserLocation();
   }, []);
 
-  // 리스트용 데이터 (페이지네이션)
+  // 리스트용 데이터 (무한 스크롤)
   const {
     data: listData,
     isLoading: isListLoading,
-    isError: isListError
-  } = useQuery({
-    queryKey: ['vouchers', 'list', area, sports, page],
-    queryFn: () => fetchVouchers(area || undefined, sports || undefined, page, 10),
+    isError: isListError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['vouchers', 'list', area, sports],
+    queryFn: ({ pageParam = 0 }) =>
+      fetchVouchers(area || undefined, sports || undefined, pageParam, 10),
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.last ? undefined : allPages.length;
+    },
+    initialPageParam: 0,
     enabled: isLocationDetected,
     staleTime: 1000 * 60 * 5, // 5분 캐시
   });
 
   // 지도용 데이터 (전체)
-  const {
-    data: mapData,
-    isLoading: isMapLoading
-  } = useQuery({
+  const { data: mapData, isLoading: isMapLoading } = useQuery({
     queryKey: ['vouchers', 'map', area, sports],
     queryFn: () => fetchVouchers(area || undefined, sports || undefined, 0, 2000),
     enabled: isLocationDetected,
     staleTime: 1000 * 60 * 5, // 5분 캐시
   });
 
-
-  const totalPages = listData?.totalPages || 0;
+  const listVouchers = listData?.pages.flatMap((page) => page.content) || [];
   const mapVouchers = mapData?.content || [];
   const loading = isListLoading || isMapLoading;
   const error = isListError ? '바우처 목록을 불러오는데 실패했습니다.' : null;
@@ -126,14 +130,21 @@ const VoucherContent = () => {
       console.log('✅ 초기 데이터 로드 완료:', {
         area: area || '전체',
         sports: sports || '전체',
-        page,
-        리스트결과: `${listData?.content.length || 0} 개`,
+        리스트결과: `${listVouchers.length} 개`,
         지도결과: `${mapData?.content.length || 0} 개`,
-        전체: `${listData?.totalElements || 0} 개`,
       });
     }
-  }, [isLocationDetected, isListLoading, isMapLoading, isInitialLoad, area, sports, page, listData, mapData]);
-
+  }, [
+    isLocationDetected,
+    isListLoading,
+    isMapLoading,
+    isInitialLoad,
+    area,
+    sports,
+    listData,
+    mapData,
+    listVouchers.length,
+  ]);
 
   // 초기 로딩만 전체 화면 표시
   if (!isLocationDetected || (isInitialLoad && loading)) {
@@ -164,15 +175,14 @@ const VoucherContent = () => {
     sports,
     setArea,
     setSports,
-    page,
-    setPage,
-    totalPages,
     areaOptions: AREA_OPTIONS,
     sportsOptions: SPORTS_OPTIONS,
   };
 
   return (
-    <div className="absolute top-16 bottom-16 left-0 right-0 w-full bg-gray-50">
+    <div
+      className={`absolute top-16 bottom-16 left-0 right-0 w-full bg-gray-50 ${viewMode === 'list' ? 'overflow-y-auto' : 'overflow-hidden'}`}
+    >
       {/* 필터 변경 중 로딩 표시 */}
       {loading && !isInitialLoad && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-2 rounded-full shadow-lg z-50 text-sm animate-pulse">
@@ -180,7 +190,23 @@ const VoucherContent = () => {
         </div>
       )}
 
-      <VoucherMapContent vouchers={mapVouchers} filterProps={filterProps} userLocation={userLocation} />
+      {viewMode === 'map' ? (
+        <VoucherMapContent
+          vouchers={mapVouchers}
+          filterProps={{ ...filterProps, page: 0, setPage: () => { }, totalPages: 0 }} // 지도 뷰에서는 페이지네이션 사용 안함
+          userLocation={userLocation}
+          onSwitchToList={() => setViewMode('list')}
+        />
+      ) : (
+        <VoucherListContent
+          vouchers={listVouchers}
+          filterProps={filterProps}
+          onSwitchToMap={() => setViewMode('map')}
+          fetchNextPage={fetchNextPage}
+          hasNextPage={hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
+        />
+      )}
     </div>
   );
 };

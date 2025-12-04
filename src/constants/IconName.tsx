@@ -1,9 +1,9 @@
 const IconName = {
   REACT: 'react',
-  HOME: 'home',
-  MY_PAGE: 'my-page',
-  VOUCHER: 'voucher',
-  COMMUNITY: 'community',
+  HOME: 'util/home',
+  MY_PAGE: 'util/my-page',
+  VOUCHER: 'util/voucher',
+  COMMUNITY: 'util/community',
   NOT_FOUND: 'not-found',
   LOGO: 'logo',
   LOGO2: 'logo2',
@@ -12,6 +12,12 @@ const IconName = {
   CAT: 'cat',
   RABBIT: 'rabbit',
   BIRD: 'bird',
+  PERSON: 'util/person',
+  MONEY: 'util/money',
+  HEART_EMPTY: 'util/heart-empty',
+  CHAT_RECORD: 'home/chat-record',
+  CHARACTER_CHANGE: 'home/character-change',
+  NOTICE: 'home/notice',
 } as const;
 
 export default IconName;

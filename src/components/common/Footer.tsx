@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ROUTES_PATH } from '@/constants/routes';
 import Icon from '../icon/Icon';
+import IconName from '@/constants/IconName';
 
 interface NavItem {
   icon: string;
@@ -9,10 +10,10 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { icon: 'home', label: '홈', path: ROUTES_PATH.HOME },
-  { icon: 'voucher', label: '스포츠바우처', path: ROUTES_PATH.VOUCHER },
-  { icon: 'community', label: '커뮤니티', path: ROUTES_PATH.COMMUNITY },
-  { icon: 'my-page', label: '마이페이지', path: ROUTES_PATH.MY_PAGE },
+  { icon: IconName.HOME, label: '홈', path: ROUTES_PATH.HOME },
+  { icon: IconName.VOUCHER, label: '스포츠바우처', path: ROUTES_PATH.VOUCHER },
+  { icon: IconName.COMMUNITY, label: '커뮤니티', path: ROUTES_PATH.COMMUNITY },
+  { icon: IconName.MY_PAGE, label: '마이페이지', path: ROUTES_PATH.MY_PAGE },
 ];
 
 const Footer = () => {

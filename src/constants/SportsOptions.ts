@@ -16,5 +16,5 @@ export const SPORTS_OPTIONS = [
   '무용',
   '댄스',
   '검도',
-  '트램펄린'
+  '트램펄린',
 ] as const;

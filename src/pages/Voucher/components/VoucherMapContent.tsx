@@ -5,6 +5,7 @@ import { SPORTS_ICONS } from '@/constants/SportsIcons';
 import LocationIcon from '@/components/icon/LocationIcon';
 import FacilityIcon from '@/components/icon/FacilityIcon';
 import Icon from '@/components/icon/Icon';
+import IconName from '@/constants/IconName';
 
 // 마커 데이터 타입
 interface MarkerData {
@@ -13,20 +14,31 @@ interface MarkerData {
   lng: number;
 }
 
+interface MarkerRef {
+  marker: naver.maps.Marker;
+  infoWindow: naver.maps.InfoWindow;
+  voucher: VoucherItem;
+}
+
 interface VoucherMapContentProps {
   vouchers: VoucherItem[];
-  onSwitchToList?: () => void;
+  onSwitchToList: () => void;
   filterProps: FilterProps;
   userLocation: { lat: number; lng: number } | null;
 }
 
-const VoucherMapContent = ({ vouchers, filterProps, userLocation }: VoucherMapContentProps) => {
+const VoucherMapContent = ({
+  vouchers,
+  filterProps,
+  userLocation,
+  onSwitchToList,
+}: VoucherMapContentProps) => {
   const { area, sports, setArea, setSports, setPage, areaOptions, sportsOptions } = filterProps;
 
   // 지도 DOM 및 인스턴스 참조
   const mapRef = useRef<HTMLDivElement | null>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markersRef = useRef<any[]>([]);
+  const mapInstanceRef = useRef<naver.maps.Map | null>(null);
+  const markersRef = useRef<MarkerRef[]>([]);
 
   // 지도 마커 관련 상태
   const [markerData, setMarkerData] = useState<MarkerData[]>([]);
@@ -39,7 +51,6 @@ const VoucherMapContent = ({ vouchers, filterProps, userLocation }: VoucherMapCo
   // ⭐ 재검색 버튼 상태 관리
   const [showRefreshBtn, setShowRefreshBtn] = useState(false);
   const lastCenterRef = useRef<{ lat: number; lng: number } | null>(null);
-
 
   // 바텀시트 드래그 상태
   const SHEET_HEIGHT = 600;
@@ -131,7 +142,7 @@ const VoucherMapContent = ({ vouchers, filterProps, userLocation }: VoucherMapCo
           // 점진적 업데이트: 중복 제거 후 추가
           setMarkerData((prev) => {
             const newItems = validBatchResults.filter(
-              (newItem) => !prev.some((prevItem) => prevItem.voucher.id === newItem.voucher.id)
+              (newItem) => !prev.some((prevItem) => prevItem.voucher.id === newItem.voucher.id),
             );
             return [...prev, ...newItems];
           });
@@ -167,39 +178,42 @@ const VoucherMapContent = ({ vouchers, filterProps, userLocation }: VoucherMapCo
     const map = mapInstanceRef.current;
     if (!map || !window.naver?.maps?.Service) return;
 
-    const center = map.getCenter() as any;
+    const center = map.getCenter();
 
     // 1. 버튼 숨기고 현재 위치를 마지막 검색 위치로 갱신
     setShowRefreshBtn(false);
     lastCenterRef.current = { lat: center.lat(), lng: center.lng() };
 
     // 2. Reverse Geocoding: 좌표 -> 행정구역 명칭 변환
-    window.naver.maps.Service.reverseGeocode({
-      coords: center,
-      orders: [
-        window.naver.maps.Service.OrderType.ADDR,
-        window.naver.maps.Service.OrderType.ROAD_ADDR
-      ].join(',')
-    }, (status, response) => {
-      if (status !== window.naver.maps.Service.Status.OK) {
-        return alert('주소 정보를 찾을 수 없습니다.');
-      }
-
-      const result = response.v2;
-      if (result.address) {
-        const area1 = result.results[0]?.region?.area1?.name; // 예: 서울특별시
-        const area2 = result.results[0]?.region?.area2?.name; // 예: 강남구
-
-        // 가장 구체적인 지역명(area2)이 존재하면 그걸로, 아니면 area1으로 검색 시도
-        const targetArea = area2 || area1;
-
-        if (targetArea) {
-          console.log(`검색 지역 변경: ${area} -> ${targetArea}`);
-          setArea(targetArea); // ⭐ 여기서 상위 컴포넌트의 필터를 변경 -> API 재호출 유도
-          setPage(0); // 페이지 초기화
+    window.naver.maps.Service.reverseGeocode(
+      {
+        coords: center,
+        orders: [
+          window.naver.maps.Service.OrderType.ADDR,
+          window.naver.maps.Service.OrderType.ROAD_ADDR,
+        ].join(','),
+      },
+      (status, response) => {
+        if (status !== window.naver.maps.Service.Status.OK) {
+          return alert('주소 정보를 찾을 수 없습니다.');
         }
-      }
-    });
+
+        const result = response.v2;
+        if (result.address) {
+          const area1 = result.results[0]?.region?.area1?.name; // 예: 서울특별시
+          const area2 = result.results[0]?.region?.area2?.name; // 예: 강남구
+
+          // 가장 구체적인 지역명(area2)이 존재하면 그걸로, 아니면 area1으로 검색 시도
+          const targetArea = area2 || area1;
+
+          if (targetArea) {
+            console.log(`검색 지역 변경: ${area} -> ${targetArea}`);
+            setArea(targetArea); // ⭐ 여기서 상위 컴포넌트의 필터를 변경 -> API 재호출 유도
+            setPage(0); // 페이지 초기화
+          }
+        }
+      },
+    );
   };
 
   // 정렬된 데이터 (거리순)
@@ -239,7 +253,7 @@ const VoucherMapContent = ({ vouchers, filterProps, userLocation }: VoucherMapCo
       lastCenterRef.current = { lat: center.lat(), lng: center.lng() };
 
       const idleListener = window.naver.maps.Event.addListener(map, 'idle', () => {
-        const currentCenter = map.getCenter() as any;
+        const currentCenter = map.getCenter();
         setMapCenter({ lat: currentCenter.lat(), lng: currentCenter.lng() });
 
         if (lastCenterRef.current) {
@@ -247,7 +261,7 @@ const VoucherMapContent = ({ vouchers, filterProps, userLocation }: VoucherMapCo
             lastCenterRef.current.lat,
             lastCenterRef.current.lng,
             currentCenter.lat(),
-            currentCenter.lng()
+            currentCenter.lng(),
           );
 
           // 1km 이상 이동했을 때만 버튼 노출
@@ -265,7 +279,7 @@ const VoucherMapContent = ({ vouchers, filterProps, userLocation }: VoucherMapCo
         window.naver.maps.Event.removeListener(idleListener);
       };
     }
-  }, []);
+  }, [userLocation, getDistance]);
 
   // 3. 마커 렌더링 (효율적인 Diffing 적용)
   useEffect(() => {
@@ -279,7 +293,7 @@ const VoucherMapContent = ({ vouchers, filterProps, userLocation }: VoucherMapCo
 
     // 1. 제거해야 할 마커 찾기 (현재 지도에 있지만, visibleItems에는 없는 것)
     const visibleIds = new Set(visibleItems.map((item) => item.voucher.id));
-    const nextMarkers: any[] = [];
+    const nextMarkers: MarkerRef[] = [];
 
     markersRef.current.forEach((m) => {
       if (!visibleIds.has(m.voucher.id)) {
@@ -353,10 +367,10 @@ const VoucherMapContent = ({ vouchers, filterProps, userLocation }: VoucherMapCo
 
     // cleanup (컴포넌트 언마운트 시에만 전체 제거)
     return () => {
-      // 여기서는 아무것도 하지 않음. 
-      // useEffect 의존성이 변경될 때마다 cleanup이 실행되는데, 
+      // 여기서는 아무것도 하지 않음.
+      // useEffect 의존성이 변경될 때마다 cleanup이 실행되는데,
       // 우리는 diffing을 하므로 마커를 유지해야 함.
-      // 진짜 언마운트 시점은 상위 컴포넌트에서 제어하거나, 
+      // 진짜 언마운트 시점은 상위 컴포넌트에서 제어하거나,
       // 빈 배열 의존성을 가진 별도의 useEffect에서 처리해야 함.
     };
   }, [markerData]); // currentBounds 제거됨
@@ -439,8 +453,7 @@ const VoucherMapContent = ({ vouchers, filterProps, userLocation }: VoucherMapCo
             onClick={handleRefreshLocation}
             className="flex items-center gap-2 bg-white text-blue-600 px-5 py-2.5 rounded-full shadow-lg border border-blue-100 hover:bg-blue-50 transition-all active:scale-95 font-bold text-sm"
           >
-            <span className="text-lg">↻</span>
-            이 지역에서 다시 검색
+            <span className="text-lg">↻</span>이 지역에서 다시 검색
           </button>
         </div>
       )}
@@ -486,6 +499,14 @@ const VoucherMapContent = ({ vouchers, filterProps, userLocation }: VoucherMapCo
             ))}
           </select>
         </div>
+        <div className="flex justify-end">
+          <button
+            onClick={onSwitchToList}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+          >
+            리스트 뷰
+          </button>
+        </div>
       </div>
 
       {/* 하단 바텀시트 레이어 */}
@@ -516,7 +537,9 @@ const VoucherMapContent = ({ vouchers, filterProps, userLocation }: VoucherMapCo
               <div className="space-y-3">
                 {displayList.map(({ voucher, lat, lng }) => {
                   const isSelected = selectedVoucherId === voucher.id;
-                  const dist = mapCenter ? getDistance(mapCenter.lat, mapCenter.lng, lat, lng).toFixed(1) : null;
+                  const dist = mapCenter
+                    ? getDistance(mapCenter.lat, mapCenter.lng, lat, lng).toFixed(1)
+                    : null;
 
                   return (
                     <div
@@ -541,8 +564,8 @@ const VoucherMapContent = ({ vouchers, filterProps, userLocation }: VoucherMapCo
                         setSheetOffset(MIDDLE_OFFSET);
                       }}
                       className={`relative rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer ${isSelected
-                        ? 'bg-gray-50 border-2 border-red-500'
-                        : 'bg-gray-50 border border-gray-200'
+                          ? 'bg-gray-50 border-2 border-red-500'
+                          : 'bg-gray-50 border border-gray-200'
                         }`}
                     >
                       <button
@@ -551,7 +574,7 @@ const VoucherMapContent = ({ vouchers, filterProps, userLocation }: VoucherMapCo
                           e.stopPropagation();
                         }}
                       >
-                        <img src="/icons/heart-empty.svg" alt="찜하기" className="w-6 h-6" />
+                        <Icon src={IconName.HEART_EMPTY} alt="찜하기" className="w-6 h-6" />
                       </button>
 
                       <div className="flex justify-between items-start">
@@ -560,7 +583,11 @@ const VoucherMapContent = ({ vouchers, filterProps, userLocation }: VoucherMapCo
                         >
                           {voucher.name}
                         </h3>
-                        {dist && <span className="text-xs text-blue-500 font-medium bg-blue-50 px-2 py-1 rounded-full">{dist}km</span>}
+                        {dist && (
+                          <span className="text-xs text-blue-500 font-medium bg-blue-50 px-2 py-1 rounded-full">
+                            {dist}km
+                          </span>
+                        )}
                       </div>
 
                       <div className="text-sm text-gray-600 space-y-1">
@@ -575,11 +602,11 @@ const VoucherMapContent = ({ vouchers, filterProps, userLocation }: VoucherMapCo
                           <span>{voucher.facilityName}</span>
                         </p>
                         <p className="flex items-center gap-1">
-                          <Icon src="person" size={16} />
+                          <Icon src={IconName.PERSON} size={16} />
                           <span>{voucher.sports}</span>
                         </p>
                         <p className="flex items-center gap-1">
-                          <Icon src="money" size={16} />
+                          <Icon src={IconName.MONEY} size={16} />
                           <span
                             className={`font-semibold ${isSelected ? 'text-red-600' : 'text-blue-600'}`}
                           >
