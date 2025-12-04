@@ -22,7 +22,7 @@ const LoginContent = () => {
             } else {
                 navigate(ROUTE_PATH.HOME); // Or home
             }
-        } catch (err) {
+        } catch {
             setError('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
         }
     };
@@ -69,7 +69,5 @@ const LoginContent = () => {
         </Screen>
     );
 };
-
-
 
 export default LoginContent;

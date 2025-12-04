@@ -37,8 +37,9 @@ const Footer = () => {
             <button
               key={item.path}
               onClick={() => handleNavClick(item.path)}
-              className={`flex flex-col items-center justify-center gap-1 transition-all ${active ? 'text-black' : 'text-gray-400'
-                }`}
+              className={`flex flex-col items-center justify-center gap-1 transition-all ${
+                active ? 'text-black' : 'text-gray-400'
+              }`}
             >
               <div
                 className={`w-6 h-6 transition-all ${active ? 'brightness-0' : 'brightness-0 opacity-40'}`}

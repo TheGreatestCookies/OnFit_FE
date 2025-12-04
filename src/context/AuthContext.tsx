@@ -12,19 +12,32 @@ import { getUserInfo } from '@/apis/user/getUserInfo';
  * 인증 관련 상태와 메서드를 제공합니다.
  * 세션 기반 인증을 사용하며, userInfo의 유무로 로그인 상태를 판단합니다.
  */
+interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+interface SignupRequest {
+  email: string;
+  password: string;
+  name: string;
+  profileImageNumber: number;
+}
+
 interface AuthContextType {
   userInfo: UserInfo | null;
   setUserInfo: (userInfo: UserInfo | null) => void;
   isLoggedIn: boolean;
   isInitialized: boolean;
   clearAuth: () => void;
-  login: (data: any) => Promise<void>;
+  login: (data: LoginRequest) => Promise<void>;
   logout: () => Promise<void>;
-  signup: (data: any) => Promise<void>;
+  signup: (data: SignupRequest) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -64,7 +77,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     queryClient.setQueryData(['userInfo'], null);
   };
 
-  const login = async (data: any) => {
+  const login = async (data: LoginRequest) => {
     console.log('🔐 Login started');
     await apiLogin(data);
     console.log('✅ Login API success');
@@ -84,7 +97,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const signup = async (data: any) => {
+  const signup = async (data: SignupRequest) => {
     await apiSignup(data);
   };
 

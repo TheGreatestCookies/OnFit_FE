@@ -193,7 +193,7 @@ const VoucherContent = () => {
       {viewMode === 'map' ? (
         <VoucherMapContent
           vouchers={mapVouchers}
-          filterProps={{ ...filterProps, page: 0, setPage: () => { }, totalPages: 0 }} // 지도 뷰에서는 페이지네이션 사용 안함
+          filterProps={{ ...filterProps, page: 0, setPage: () => {}, totalPages: 0 }} // 지도 뷰에서는 페이지네이션 사용 안함
           userLocation={userLocation}
           onSwitchToList={() => setViewMode('list')}
         />

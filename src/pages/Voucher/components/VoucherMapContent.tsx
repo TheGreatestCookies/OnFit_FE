@@ -166,9 +166,9 @@ const VoucherMapContent = ({
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLng / 2) *
-      Math.sin(dLng / 2);
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   }, []);
@@ -512,8 +512,9 @@ const VoucherMapContent = ({
       {/* 하단 바텀시트 레이어 */}
       <div className=" fixed left-1/2 -translate-x-1/2 bottom-0 z-20 flex justify-center pointer-events-none w-full max-w-[480px]">
         <div
-          className={`w-full bg-white rounded-t-2xl shadow-xl pointer-events-auto border-2 border-gray-300 ${isDragging ? '' : 'transition-transform duration-200'
-            }`}
+          className={`w-full bg-white rounded-t-2xl shadow-xl pointer-events-auto border-2 border-gray-300 ${
+            isDragging ? '' : 'transition-transform duration-200'
+          }`}
           style={{
             transform: `translateY(${sheetOffset}px)`,
             height: `${SHEET_HEIGHT}px`,
@@ -563,10 +564,11 @@ const VoucherMapContent = ({
                         }
                         setSheetOffset(MIDDLE_OFFSET);
                       }}
-                      className={`relative rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer ${isSelected
+                      className={`relative rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer ${
+                        isSelected
                           ? 'bg-gray-50 border-2 border-red-500'
                           : 'bg-gray-50 border border-gray-200'
-                        }`}
+                      }`}
                     >
                       <button
                         className="absolute top-4 right-4 p-1 z-10 hover:scale-110 transition-transform"

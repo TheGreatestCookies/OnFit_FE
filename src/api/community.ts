@@ -58,10 +58,10 @@ export const createPost = async (data: CreatePostRequest): Promise<Post> => {
     credentials: 'include',
     body: JSON.stringify(data),
   });
-  
+
   if (!response.ok) {
     throw new Error('Failed to create post');
   }
-  
+
   return response.json();
 };

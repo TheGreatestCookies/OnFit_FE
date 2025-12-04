@@ -3,9 +3,9 @@ import type { ChatRequest } from '@/types/ChatType';
 
 export const sendMessage = async (
     data: ChatRequest,
-    onChunk: (chunk: any) => void,
+    onChunk: (chunk: unknown) => void,
     onComplete: () => void,
-    onError: (error: any) => void
+    onError: (error: unknown) => void,
 ) => {
     try {
         console.log('[chatApi] 요청 시작:', data);

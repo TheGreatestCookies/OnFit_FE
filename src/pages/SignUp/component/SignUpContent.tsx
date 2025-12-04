@@ -4,7 +4,6 @@ import { useAuth } from '@/context/AuthContext';
 import { ROUTE_PATH } from '@/constants/RoutePath';
 
 const SignUpContent = () => {
-
     const navigate = useNavigate();
     const { signup } = useAuth();
     const [email, setEmail] = useState('');
@@ -19,13 +18,12 @@ const SignUpContent = () => {
             await signup({ email, password, name, profileImageNumber: 1 });
             alert('회원가입이 완료되었습니다. 로그인해주세요.');
             navigate(ROUTE_PATH.LOGIN);
-        } catch (err) {
+        } catch {
             setError('회원가입에 실패했습니다. 다시 시도해주세요.');
         }
     };
 
     return (
-
         <div className="flex flex-col items-center justify-center flex-1 px-6">
             <h1 className="text-2xl font-bold mb-8">회원가입</h1>
             <form onSubmit={handleSignup} className="w-full max-w-sm flex flex-col gap-4">
@@ -62,7 +60,6 @@ const SignUpContent = () => {
                 </button>
             </form>
         </div>
-
     );
 };
 

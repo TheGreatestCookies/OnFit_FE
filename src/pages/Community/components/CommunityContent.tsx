@@ -110,8 +110,9 @@ const CommunityContent = () => {
 
             <button
               onClick={handleFabClick}
-              className={`w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 hover:bg-red-300 ${isFabExpanded ? 'bg-gray-700 rotate-45' : 'bg-red-300 hover:bg-red-600'
-                }`}
+              className={`w-14 h-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 hover:bg-red-300 ${
+                isFabExpanded ? 'bg-gray-700 rotate-45' : 'bg-red-300 hover:bg-red-600'
+              }`}
             >
               <span className="text-white text-2xl font-light">+</span>
             </button>
