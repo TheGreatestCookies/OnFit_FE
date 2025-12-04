@@ -13,20 +13,26 @@ interface ProtectedRouteProps {
  * @param children - 로그인이 되었을 때 표시될 페이지
  */
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn, isInitialized } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    if (!isLoggedIn) {
+    console.log('🛡️ ProtectedRoute check:', { isInitialized, isLoggedIn, path: location.pathname });
+    // 초기화가 완료되고 로그인되지 않은 경우에만 리다이렉트
+    if (isInitialized && !isLoggedIn) {
+      console.log('❌ Not logged in, redirecting to login');
       const cont = encodeURIComponent(location.pathname + location.search + location.hash);
       navigate(`${generatePath(ROUTE_PATH.LOGIN)}?continue=${cont}`, {
         replace: true,
       });
+    } else if (isInitialized && isLoggedIn) {
+      console.log('✅ Logged in, allowing access');
     }
-  }, [isLoggedIn, navigate, location]);
+  }, [isLoggedIn, isInitialized, navigate, location]);
 
-  if (!isLoggedIn) return null;
+  // 초기화 중이거나 로그인되지 않은 경우 null 반환
+  if (!isInitialized || !isLoggedIn) return null;
   return <>{children}</>;
 };
 

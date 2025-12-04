@@ -1,6 +1,6 @@
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { ROUTES_PATH } from '@/constants/routes';
+import { ROUTE_PATH } from '@/constants/RoutePath';
 
 const MyContent = () => {
   const { userInfo, logout } = useAuth();
@@ -10,7 +10,7 @@ const MyContent = () => {
     try {
       await logout();
       alert('로그아웃되었습니다.');
-      navigate(ROUTES_PATH.HOME);
+      navigate(ROUTE_PATH.HOME);
     } catch (error) {
       console.error('로그아웃 실패:', error);
     }
@@ -38,7 +38,7 @@ const MyContent = () => {
               <p className="text-sm text-gray-500">{userInfo.email}</p>
             </div>
           </div>
-          
+
           <button
             onClick={handleLogout}
             className="w-full bg-red-500 text-white py-3 rounded-lg font-bold hover:bg-red-600 transition-colors"

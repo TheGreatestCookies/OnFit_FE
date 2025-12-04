@@ -5,6 +5,5 @@ export interface UserInfo {
     profileImageNumber: number;
 }
 
-export interface UserInfoResponse {
-    content: UserInfo;
-}
+// API 응답은 UserInfo를 직접 반환합니다 (content 래퍼 없음)
+export type UserInfoResponse = UserInfo;

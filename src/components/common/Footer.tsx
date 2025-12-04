@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ROUTES_PATH } from '@/constants/routes';
+import { ROUTE_PATH } from '@/constants/RoutePath';
 import Icon from '../icon/Icon';
 import IconName from '@/constants/IconName';
 
@@ -10,10 +10,10 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { icon: IconName.HOME, label: '홈', path: ROUTES_PATH.HOME },
-  { icon: IconName.VOUCHER, label: '스포츠바우처', path: ROUTES_PATH.VOUCHER },
-  { icon: IconName.COMMUNITY, label: '커뮤니티', path: ROUTES_PATH.COMMUNITY },
-  { icon: IconName.MY_PAGE, label: '마이페이지', path: ROUTES_PATH.MY_PAGE },
+  { icon: IconName.HOME, label: '홈', path: ROUTE_PATH.HOME },
+  { icon: IconName.VOUCHER, label: '스포츠바우처', path: ROUTE_PATH.VOUCHER },
+  { icon: IconName.COMMUNITY, label: '커뮤니티', path: ROUTE_PATH.COMMUNITY },
+  { icon: IconName.MY_PAGE, label: '마이페이지', path: ROUTE_PATH.MY_PAGE },
 ];
 
 const Footer = () => {
@@ -37,9 +37,8 @@ const Footer = () => {
             <button
               key={item.path}
               onClick={() => handleNavClick(item.path)}
-              className={`flex flex-col items-center justify-center gap-1 transition-all ${
-                active ? 'text-black' : 'text-gray-400'
-              }`}
+              className={`flex flex-col items-center justify-center gap-1 transition-all ${active ? 'text-black' : 'text-gray-400'
+                }`}
             >
               <div
                 className={`w-6 h-6 transition-all ${active ? 'brightness-0' : 'brightness-0 opacity-40'}`}

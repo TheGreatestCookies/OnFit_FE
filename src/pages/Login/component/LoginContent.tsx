@@ -1,27 +1,29 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { ROUTE_PATH } from '@/constants/RoutePath';
 import Screen from '@/components/common/Screen';
 import Header from '@/components/common/Header';
-
-const SignupPage = () => {
+const LoginContent = () => {
     const navigate = useNavigate();
-    const { signup } = useAuth();
+    const [searchParams] = useSearchParams();
+    const { login } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [name, setName] = useState('');
     const [error, setError] = useState('');
 
-    const handleSignup = async (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            // profileImageNumber is hardcoded for now as per simple implementation
-            await signup({ email, password, name, profileImageNumber: 1 });
-            alert('회원가입이 완료되었습니다. 로그인해주세요.');
-            navigate(ROUTE_PATH.LOGIN);
+            await login({ email, password });
+            const continueUrl = searchParams.get('continue');
+            if (continueUrl) {
+                navigate(continueUrl);
+            } else {
+                navigate(ROUTE_PATH.HOME); // Or home
+            }
         } catch (err) {
-            setError('회원가입에 실패했습니다. 다시 시도해주세요.');
+            setError('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
         }
     };
 
@@ -29,8 +31,8 @@ const SignupPage = () => {
         <Screen>
             <Header />
             <div className="flex flex-col items-center justify-center flex-1 px-6">
-                <h1 className="text-2xl font-bold mb-8">회원가입</h1>
-                <form onSubmit={handleSignup} className="w-full max-w-sm flex flex-col gap-4">
+                <h1 className="text-2xl font-bold mb-8">로그인</h1>
+                <form onSubmit={handleLogin} className="w-full max-w-sm flex flex-col gap-4">
                     <input
                         type="email"
                         placeholder="이메일"
@@ -47,25 +49,27 @@ const SignupPage = () => {
                         className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500"
                         required
                     />
-                    <input
-                        type="text"
-                        placeholder="이름"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500"
-                        required
-                    />
                     {error && <p className="text-red-500 text-sm">{error}</p>}
                     <button
                         type="submit"
-                        className="w-full bg-green-500 text-white py-3 rounded-lg font-bold hover:bg-green-600 transition-colors"
+                        className="w-full bg-blue-500 text-white py-3 rounded-lg font-bold hover:bg-blue-600 transition-colors"
                     >
-                        가입하기
+                        로그인
                     </button>
                 </form>
+                <div className="mt-6">
+                    <button
+                        onClick={() => navigate(ROUTE_PATH.SIGNUP)}
+                        className="text-gray-500 hover:text-gray-700 underline"
+                    >
+                        회원가입
+                    </button>
+                </div>
             </div>
         </Screen>
     );
 };
 
-export default SignupPage;
+
+
+export default LoginContent;

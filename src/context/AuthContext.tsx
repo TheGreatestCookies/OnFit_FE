@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { login as apiLogin } from '@/apis/auth/login';
 import { logout as apiLogout } from '@/apis/auth/logout';
 import { signup as apiSignup } from '@/apis/member/signup';
-import type { UserInfoResponse } from '@/types/UserType';
+import type { UserInfo } from '@/types/UserType';
 import { getUserInfo } from '@/apis/user/getUserInfo';
 
 /**
@@ -13,8 +13,8 @@ import { getUserInfo } from '@/apis/user/getUserInfo';
  * 세션 기반 인증을 사용하며, userInfo의 유무로 로그인 상태를 판단합니다.
  */
 interface AuthContextType {
-  userInfo: UserInfoResponse['content'] | null;
-  setUserInfo: (userInfo: UserInfoResponse['content']) => void;
+  userInfo: UserInfo | null;
+  setUserInfo: (userInfo: UserInfo | null) => void;
   isLoggedIn: boolean;
   isInitialized: boolean;
   clearAuth: () => void;
@@ -46,7 +46,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         const response = await getUserInfo();
         console.log('React Query getUserInfo response:', response);
-        return response?.data?.content || null;
+        return response?.data || null;
       } catch (error) {
         console.error('React Query getUserInfo error:', error);
         return null;
@@ -56,7 +56,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     retry: 0,
   });
 
-  const setUserInfo = (newUserInfo: UserInfoResponse['content'] | null) => {
+  const setUserInfo = (newUserInfo: UserInfo | null) => {
     queryClient.setQueryData(['userInfo'], newUserInfo);
   };
 
@@ -65,9 +65,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const login = async (data: any) => {
+    console.log('🔐 Login started');
     await apiLogin(data);
-    // 로그인 성공 후 사용자 정보 쿼리 무효화하여 다시 가져오기
-    await queryClient.invalidateQueries({ queryKey: ['userInfo'] });
+    console.log('✅ Login API success');
+    // 로그인 성공 후 사용자 정보를 다시 가져오기
+    const response = await getUserInfo();
+    console.log('📥 getUserInfo response:', response);
+    const newUserInfo = response?.data || null;
+    console.log('👤 Setting userInfo:', newUserInfo);
+    setUserInfo(newUserInfo);
   };
 
   const logout = async () => {
@@ -84,6 +90,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const isLoggedIn = !!userInfo;
   const isInitialized = !isLoading;
+
+  console.log('🔍 isLoggedIn:', isLoggedIn);
+  console.log('🔍 isInitialized:', isInitialized);
+  console.log('🔍 userInfo:', userInfo);
 
   const value: AuthContextType = {
     isLoggedIn,

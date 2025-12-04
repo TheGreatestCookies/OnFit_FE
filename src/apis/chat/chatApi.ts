@@ -9,6 +9,7 @@ export const sendMessage = async (
 ) => {
     try {
         console.log('[chatApi] 요청 시작:', data);
+        // 상대 경로를 사용하면 Vite 프록시가 자동으로 localhost:8080으로 전달
         const response = await fetch('/api/chat', {
             method: 'POST',
             headers: {
@@ -50,10 +51,10 @@ export const sendMessage = async (
                 const trimmedLine = line.trim();
                 if (trimmedLine.startsWith('data:')) {
                     // "data:" 또는 "data: " 다음의 JSON 추출
-                    const jsonStr = trimmedLine.startsWith('data: ') 
-                        ? trimmedLine.slice(6) 
+                    const jsonStr = trimmedLine.startsWith('data: ')
+                        ? trimmedLine.slice(6)
                         : trimmedLine.slice(5);
-                    
+
                     if (jsonStr) {
                         try {
                             const parsed = JSON.parse(jsonStr);
