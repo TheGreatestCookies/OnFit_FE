@@ -18,16 +18,12 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const location = useLocation();
 
   useEffect(() => {
-    console.log('🛡️ ProtectedRoute check:', { isInitialized, isLoggedIn, path: location.pathname });
     // 초기화가 완료되고 로그인되지 않은 경우에만 리다이렉트
     if (isInitialized && !isLoggedIn) {
-      console.log('❌ Not logged in, redirecting to login');
       const cont = encodeURIComponent(location.pathname + location.search + location.hash);
       navigate(`${generatePath(ROUTE_PATH.LOGIN)}?continue=${cont}`, {
         replace: true,
       });
-    } else if (isInitialized && isLoggedIn) {
-      console.log('✅ Logged in, allowing access');
     }
   }, [isLoggedIn, isInitialized, navigate, location]);
 

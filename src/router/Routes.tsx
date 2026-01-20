@@ -1,6 +1,10 @@
 import { Route, Routes as RouterRoutes } from 'react-router-dom';
 import HomePage from '@/pages/Home/HomePage';
 import MyPage from '@/pages/My/MyPage';
+import MyPostsPage from '@/pages/My/MyPostsPage';
+import LikedPostsPage from '@/pages/My/LikedPostsPage';
+import LikedVouchersPage from '@/pages/My/LikedVouchersPage';
+import RecommendationHistoryPage from '@/pages/Home/RecommendationHistoryPage';
 import VoucherPage from '@/pages/Voucher/VoucherPage';
 import CommunityPage from '@/pages/Community/CommunityPage';
 import ProtectedRoute from './ProtectedRoute';
@@ -21,6 +25,38 @@ const Routes = () => {
         element={
           <ProtectedRoute>
             <MyPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTE_PATH.MY_POSTS}
+        element={
+          <ProtectedRoute>
+            <MyPostsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTE_PATH.LIKED_POSTS}
+        element={
+          <ProtectedRoute>
+            <LikedPostsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTE_PATH.LIKED_VOUCHERS}
+        element={
+          <ProtectedRoute>
+            <LikedVouchersPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTE_PATH.RECOMMENDATION_HISTORY}
+        element={
+          <ProtectedRoute>
+            <RecommendationHistoryPage />
           </ProtectedRoute>
         }
       />
