@@ -1,9 +1,17 @@
 import { useState } from 'react';
-import IconName from '@/constants/IconName';
+import { useNavigate } from 'react-router-dom';
+import { CharacterOptions } from '@/constants/CharacterOptions';
 import CharacterIcon from '@/components/icon/CharacterIcon';
 import HomeContentFeatures from './HomeContentFeatures';
 import ChatModal from '@/components/chat/ChatModal';
-
+import ConfirmModal from '@/components/ConfirmModal';
+import FAQModal from '@/components/FAQModal';
+import CharacterSelectModal from '@/components/CharacterSelectModal';
+import { characterMessages } from '@/constants/CharacterMessages';
+import { useAuth } from '@/context/AuthContext';
+import { FaceOptions } from '@/constants/FaceOptions';
+import { ROUTE_PATH } from '@/constants/RoutePath';
+import { updateProfileImage } from '@/apis/member/updateProfileImage';
 const HomeContent = ({ image }: { image: string }) => {
   /**
    * HomeContent
@@ -14,25 +22,75 @@ const HomeContent = ({ image }: { image: string }) => {
    * @returns
    */
   const position = {
-    top: 40,
-    left: 40,
+    top: 45,
+    left: 50,
   };
 
-  const messages = [
-    '오늘도 힘내서 운동해봐요! 💪',
-    '주변에 재미있는 강좌가 많아요! 👀',
-    '스포츠바우처, 잊지 않으셨죠? 🎫',
-    '건강한 하루 되세요! ✨',
-    '운동하기 딱 좋은 날씨네요! ☀️',
-  ];
 
+  const { userInfo, isLoggedIn, refreshUserInfo } = useAuth();
+  const navigate = useNavigate();
   // 랜덤 메시지 선택 (hydration mismatch 방지를 위해 useEffect 사용 가능하지만, 여기선 간단히)
-  const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+  let randomMessage = '';
+
+  if (!userInfo || !userInfo.profileImageNumber) {
+    // 로그인하지 않았거나 프로필 이미지가 없으면 기본 TIGER 메시지
+    randomMessage = characterMessages.TIGER[Math.floor(Math.random() * characterMessages.TIGER.length)];
+  } else {
+    // 사용자의 프로필 이미지 번호에 해당하는 캐릭터 찾기
+    const characterIndex = userInfo.profileImageNumber - 1;
+    const character = FaceOptions[characterIndex];
+
+    if (character) {
+      // 캐릭터 이름을 대문자로 변환하여 characterMessages의 키로 사용
+      const characterKey = character.name.toUpperCase() as keyof typeof characterMessages;
+      const messages = characterMessages[characterKey];
+
+      if (messages && messages.length > 0) {
+        randomMessage = messages[Math.floor(Math.random() * messages.length)];
+      } else {
+        // 메시지가 없으면 기본 TIGER 메시지
+        randomMessage = characterMessages.TIGER[Math.floor(Math.random() * characterMessages.TIGER.length)];
+      }
+    } else {
+      // 캐릭터를 찾을 수 없으면 기본 TIGER 메시지
+      randomMessage = characterMessages.TIGER[Math.floor(Math.random() * characterMessages.TIGER.length)];
+    }
+  }
 
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isLoginRequiredModalOpen, setIsLoginRequiredModalOpen] = useState(false);
+  const [isFAQModalOpen, setIsFAQModalOpen] = useState(false);
+  const [isCharacterSelectModalOpen, setIsCharacterSelectModalOpen] = useState(false);
 
   const handleCharacterClick = () => {
     setIsChatOpen(true);
+  };
+
+  const handleRecommendationHistoryClick = () => {
+    if (!userInfo) {
+      setIsLoginRequiredModalOpen(true);
+    } else {
+      navigate(ROUTE_PATH.RECOMMENDATION_HISTORY);
+    }
+  };
+
+  const handleNoticeClick = () => {
+    setIsFAQModalOpen(true);
+  };
+
+  const handleCharacterChangeClick = () => {
+    setIsCharacterSelectModalOpen(true);
+  };
+
+  const handleCharacterSelect = async (characterId: number) => {
+    try {
+      await updateProfileImage({ profileImageNumber: characterId });
+      await refreshUserInfo();
+      setIsCharacterSelectModalOpen(false);
+    } catch (error) {
+      console.error('Failed to update profile image:', error);
+      // 에러 처리 (예: 토스트 메시지)
+    }
   };
 
   return (
@@ -47,24 +105,66 @@ const HomeContent = ({ image }: { image: string }) => {
         >
           <div className="relative">
             {/* 말풍선 */}
-            <div className="absolute -top-24 left-3/4 -translate-x-1/2 bg-white px-5 py-3 rounded-2xl shadow-xl whitespace-nowrap animate-bounce-in z-10">
-              <p className="text-gray-800 font-bold text-lg">{randomMessage}</p>
+            <div className="absolute -top-35 left-[120px] -translate-x-1/2 bg-white px-5 py-3 rounded-2xl shadow-xl w-[300px] animate-bounce-in z-10">
+              <p className="text-gray-800 font-bold text-lg text-center">{randomMessage}</p>
               {/* 말풍선 꼬리 */}
               <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white rotate-45"></div>
             </div>
 
             <CharacterIcon
-              src={IconName.TIGER}
-              alt={IconName.TIGER}
+              src={
+                userInfo?.profileImageNumber
+                  ? CharacterOptions[userInfo.profileImageNumber - 1].src
+                  : CharacterOptions[0].src
+              }
+              alt={
+                userInfo?.profileImageNumber
+                  ? CharacterOptions[userInfo.profileImageNumber - 1].name
+                  : CharacterOptions[0].name
+              }
               size={240}
               className="hover:scale-110 transition-transform duration-300 drop-shadow-lg"
             />
           </div>
         </div>
-        <HomeContentFeatures />
+        <HomeContentFeatures
+          onRecommendationHistoryClick={handleRecommendationHistoryClick}
+          onNoticeClick={handleNoticeClick}
+          onCharacterChangeClick={handleCharacterChangeClick}
+        />
       </div>
 
-      <ChatModal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+      <ChatModal
+        key={userInfo?.profileImageNumber}
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+      />
+
+      {/* FAQ 모달 */}
+      <FAQModal isOpen={isFAQModalOpen} onClose={() => setIsFAQModalOpen(false)} />
+
+      {/* 캐릭터 선택 모달 */}
+      <CharacterSelectModal
+        isOpen={isCharacterSelectModalOpen}
+        onClose={() => setIsCharacterSelectModalOpen(false)}
+        isLoggedIn={isLoggedIn}
+        onSelect={handleCharacterSelect}
+      />
+
+      {/* 로그인 필요 모달 */}
+      <ConfirmModal
+        isOpen={isLoginRequiredModalOpen}
+        title="로그인 필요"
+        message="추천 기록을 보려면 로그인이 필요합니다. 로그인하시겠습니까?"
+        confirmText="로그인"
+        cancelText="취소"
+        onConfirm={() => {
+          setIsLoginRequiredModalOpen(false);
+          window.location.href = '/login';
+        }}
+        onCancel={() => setIsLoginRequiredModalOpen(false)}
+        isDanger={false}
+      />
     </div>
   );
 };
