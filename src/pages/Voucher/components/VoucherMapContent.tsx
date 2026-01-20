@@ -6,6 +6,7 @@ import LocationIcon from '@/components/icon/LocationIcon';
 import FacilityIcon from '@/components/icon/FacilityIcon';
 import Icon from '@/components/icon/Icon';
 import IconName from '@/constants/IconName';
+import { useAuth } from '@/context/AuthContext';
 
 // 마커 데이터 타입
 interface MarkerData {
@@ -25,6 +26,8 @@ interface VoucherMapContentProps {
   onSwitchToList: () => void;
   filterProps: FilterProps;
   userLocation: { lat: number; lng: number } | null;
+  onLike: (voucherId: number) => void;
+  onUnlike: (voucherId: number) => void;
 }
 
 const VoucherMapContent = ({
@@ -32,8 +35,20 @@ const VoucherMapContent = ({
   filterProps,
   userLocation,
   onSwitchToList,
+  onLike,
+  onUnlike,
 }: VoucherMapContentProps) => {
   const { area, sports, setArea, setSports, setPage, areaOptions, sportsOptions } = filterProps;
+  const { userInfo } = useAuth();
+
+  const handleLikeClick = (voucher: VoucherItem) => {
+    if (!userInfo) return;
+    if (voucher.myLike) {
+      onUnlike(voucher.id);
+    } else {
+      onLike(voucher.id);
+    }
+  };
 
   // 지도 DOM 및 인스턴스 참조
   const mapRef = useRef<HTMLDivElement | null>(null);
@@ -48,9 +63,7 @@ const VoucherMapContent = ({
   // 지도 중심 및 경계 상태 (Viewport Culling용)
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number } | null>(null);
 
-  // ⭐ 재검색 버튼 상태 관리
-  const [showRefreshBtn, setShowRefreshBtn] = useState(false);
-  const lastCenterRef = useRef<{ lat: number; lng: number } | null>(null);
+
 
   // 바텀시트 드래그 상태
   const SHEET_HEIGHT = 600;
@@ -63,95 +76,26 @@ const VoucherMapContent = ({
   const startOffset = useRef(0);
 
   // 좌표 캐시
-  const coordinateCache = useRef<Map<string, { lat: number; lng: number }>>(new Map());
+  //const coordinateCache = useRef<Map<string, { lat: number; lng: number }>>(new Map());
 
-  // 1. 지오코딩 (배치 처리 + 점진적 로딩)
+  // 1. DB의 위도/경도를 사용하여 마커 데이터 생성 (지오코딩 불필요)
   useEffect(() => {
-    if (vouchers.length > 0 && window.naver?.maps) {
-      setMarkerData([]); // 기존 마커 초기화
-      setIsGeocodingLoading(true);
+    if (vouchers.length > 0) {
+      const validMarkers: MarkerData[] = vouchers
+        .filter((voucher) => {
+          // 위도/경도가 있고, 필터 조건에 맞는 항목만
+          if (!voucher.latitude || !voucher.longitude) return false;
+          if (sports && voucher.sports !== sports) return false;
+          return true;
+        })
+        .map((voucher) => ({
+          voucher,
+          lat: voucher.latitude,
+          lng: voucher.longitude,
+        }));
 
-      const fetchCoordinatesBatch = async () => {
-        const results: MarkerData[] = [];
-        const BATCH_SIZE = 5;
-        const DELAY_MS = 300;
-
-        const toProcess: VoucherItem[] = [];
-        vouchers.forEach((voucher) => {
-          if (!voucher.addr1) return;
-
-          // 클라이언트 사이드 필터링 (API 응답 보완)
-          if (sports && voucher.sports !== sports) {
-            return;
-          }
-
-          if (coordinateCache.current.has(voucher.addr1)) {
-            const cached = coordinateCache.current.get(voucher.addr1)!;
-            results.push({ voucher, ...cached });
-          } else {
-            toProcess.push(voucher);
-          }
-        });
-
-        // 캐시된 데이터 먼저 설정
-        if (results.length > 0) {
-          setMarkerData(results);
-        }
-
-        // 미캐시 항목 배치 처리
-        for (let i = 0; i < toProcess.length; i += BATCH_SIZE) {
-          const batch = toProcess.slice(i, i + BATCH_SIZE);
-
-          const batchPromises = batch.map((voucher) => {
-            return new Promise<MarkerData | null>((resolve) => {
-              if (!window.naver?.maps?.Service) {
-                resolve(null);
-                return;
-              }
-
-              window.naver.maps.Service.geocode(
-                { query: voucher.addr1 },
-                function (status, response) {
-                  if (
-                    status === window.naver.maps.Service.Status.OK &&
-                    response.v2.addresses.length > 0
-                  ) {
-                    const result = response.v2.addresses[0];
-                    const coords = {
-                      lat: parseFloat(result.y),
-                      lng: parseFloat(result.x),
-                    };
-                    coordinateCache.current.set(voucher.addr1, coords);
-                    resolve({ voucher, ...coords });
-                  } else {
-                    resolve(null);
-                  }
-                },
-              );
-            });
-          });
-
-          const batchResults = await Promise.all(batchPromises);
-          const validBatchResults = batchResults.filter((r): r is MarkerData => r !== null);
-
-          // 딜레이
-          if (i + BATCH_SIZE < toProcess.length) {
-            await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
-          }
-
-          // 점진적 업데이트: 중복 제거 후 추가
-          setMarkerData((prev) => {
-            const newItems = validBatchResults.filter(
-              (newItem) => !prev.some((prevItem) => prevItem.voucher.id === newItem.voucher.id),
-            );
-            return [...prev, ...newItems];
-          });
-        }
-
-        setIsGeocodingLoading(false);
-      };
-
-      fetchCoordinatesBatch();
+      setMarkerData(validMarkers);
+      setIsGeocodingLoading(false);
     } else {
       setMarkerData([]);
       setIsGeocodingLoading(false);
@@ -166,55 +110,12 @@ const VoucherMapContent = ({
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLng / 2) *
-        Math.sin(dLng / 2);
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   }, []);
-
-  // ⭐ "이 지역에서 다시 검색" 버튼 핸들러
-  const handleRefreshLocation = () => {
-    const map = mapInstanceRef.current;
-    if (!map || !window.naver?.maps?.Service) return;
-
-    const center = map.getCenter();
-
-    // 1. 버튼 숨기고 현재 위치를 마지막 검색 위치로 갱신
-    setShowRefreshBtn(false);
-    lastCenterRef.current = { lat: center.lat(), lng: center.lng() };
-
-    // 2. Reverse Geocoding: 좌표 -> 행정구역 명칭 변환
-    window.naver.maps.Service.reverseGeocode(
-      {
-        coords: center,
-        orders: [
-          window.naver.maps.Service.OrderType.ADDR,
-          window.naver.maps.Service.OrderType.ROAD_ADDR,
-        ].join(','),
-      },
-      (status, response) => {
-        if (status !== window.naver.maps.Service.Status.OK) {
-          return alert('주소 정보를 찾을 수 없습니다.');
-        }
-
-        const result = response.v2;
-        if (result.address) {
-          const area1 = result.results[0]?.region?.area1?.name; // 예: 서울특별시
-          const area2 = result.results[0]?.region?.area2?.name; // 예: 강남구
-
-          // 가장 구체적인 지역명(area2)이 존재하면 그걸로, 아니면 area1으로 검색 시도
-          const targetArea = area2 || area1;
-
-          if (targetArea) {
-            console.log(`검색 지역 변경: ${area} -> ${targetArea}`);
-            setArea(targetArea); // ⭐ 여기서 상위 컴포넌트의 필터를 변경 -> API 재호출 유도
-            setPage(0); // 페이지 초기화
-          }
-        }
-      },
-    );
-  };
 
   // 정렬된 데이터 (거리순)
   const sortedMarkerData = useMemo(() => {
@@ -250,25 +151,10 @@ const VoucherMapContent = ({
       mapInstanceRef.current = map;
 
       setMapCenter({ lat: center.lat(), lng: center.lng() });
-      lastCenterRef.current = { lat: center.lat(), lng: center.lng() };
 
       const idleListener = window.naver.maps.Event.addListener(map, 'idle', () => {
         const currentCenter = map.getCenter();
         setMapCenter({ lat: currentCenter.lat(), lng: currentCenter.lng() });
-
-        if (lastCenterRef.current) {
-          const dist = getDistance(
-            lastCenterRef.current.lat,
-            lastCenterRef.current.lng,
-            currentCenter.lat(),
-            currentCenter.lng(),
-          );
-
-          // 1km 이상 이동했을 때만 버튼 노출
-          if (dist > 1.0) {
-            setShowRefreshBtn(true);
-          }
-        }
       });
 
       setTimeout(() => {
@@ -289,7 +175,6 @@ const VoucherMapContent = ({
     // 모든 마커 표시 (Viewport Culling 제거)
     const visibleItems = markerData;
 
-    console.log(`📍 마커 렌더링: 전체 ${markerData.length}개 중 ${visibleItems.length}개 표시`);
 
     // 1. 제거해야 할 마커 찾기 (현재 지도에 있지만, visibleItems에는 없는 것)
     const visibleIds = new Set(visibleItems.map((item) => item.voucher.id));
@@ -446,17 +331,7 @@ const VoucherMapContent = ({
         </div>
       ) : null}
 
-      {/* ⭐ 재검색 플로팅 버튼 */}
-      {showRefreshBtn && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 animate-bounce-in">
-          <button
-            onClick={handleRefreshLocation}
-            className="flex items-center gap-2 bg-white text-blue-600 px-5 py-2.5 rounded-full shadow-lg border border-blue-100 hover:bg-blue-50 transition-all active:scale-95 font-bold text-sm"
-          >
-            <span className="text-lg">↻</span>이 지역에서 다시 검색
-          </button>
-        </div>
-      )}
+
 
       {/* 지도 영역 */}
       <div
@@ -498,7 +373,7 @@ const VoucherMapContent = ({
               </option>
             ))}
           </select>
-        </div>
+
         <div className="flex justify-end">
           <button
             onClick={onSwitchToList}
@@ -508,13 +383,13 @@ const VoucherMapContent = ({
           </button>
         </div>
       </div>
+      </div>
 
       {/* 하단 바텀시트 레이어 */}
       <div className=" fixed left-1/2 -translate-x-1/2 bottom-0 z-20 flex justify-center pointer-events-none w-full max-w-[480px]">
         <div
-          className={`w-full bg-white rounded-t-2xl shadow-xl pointer-events-auto border-2 border-gray-300 ${
-            isDragging ? '' : 'transition-transform duration-200'
-          }`}
+          className={`w-full bg-white rounded-t-2xl shadow-xl pointer-events-auto border-2 border-gray-300 ${isDragging ? '' : 'transition-transform duration-200'
+            }`}
           style={{
             transform: `translateY(${sheetOffset}px)`,
             height: `${SHEET_HEIGHT}px`,
@@ -564,32 +439,46 @@ const VoucherMapContent = ({
                         }
                         setSheetOffset(MIDDLE_OFFSET);
                       }}
-                      className={`relative rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer ${
-                        isSelected
-                          ? 'bg-gray-50 border-2 border-red-500'
-                          : 'bg-gray-50 border border-gray-200'
-                      }`}
+                      className={`relative rounded-lg p-4 shadow-sm hover:shadow-md transition-all cursor-pointer ${isSelected
+                        ? 'bg-gray-50 border-2 border-red-500'
+                        : 'bg-gray-50 border border-gray-200'
+                        }`}
                     >
-                      <button
-                        className="absolute top-4 right-4 p-1 z-10 hover:scale-110 transition-transform"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                        }}
-                      >
-                        <Icon src={IconName.HEART_EMPTY} alt="찜하기" className="w-6 h-6" />
-                      </button>
-
-                      <div className="flex justify-between items-start">
+                      <div className="flex justify-between items-start mb-2">
                         <h3
-                          className={`font-bold text-lg mb-2 ${isSelected ? 'text-red-600' : 'text-gray-800'}`}
+                          className={`font-bold text-lg ${isSelected ? 'text-red-600' : 'text-gray-800'}`}
                         >
                           {voucher.name}
                         </h3>
-                        {dist && (
-                          <span className="text-xs text-blue-500 font-medium bg-blue-50 px-2 py-1 rounded-full">
-                            {dist}km
-                          </span>
-                        )}
+                        <div className="flex flex-col items-end gap-1">
+                          {dist && (
+                            <span className="text-xs text-blue-500 font-medium bg-blue-50 px-2 py-1 rounded-full">
+                              {dist}km
+                            </span>
+                          )}
+                          <button
+                            className={`p-1 hover:scale-110 transition-transform ${!userInfo ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleLikeClick(voucher);
+                            }}
+                            disabled={!userInfo}
+                          >
+                            <svg
+                              className={`w-6 h-6 ${voucher.myLike ? 'text-red-500' : 'text-gray-400'}`}
+                              fill={voucher.myLike ? 'currentColor' : 'none'}
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                              />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
 
                       <div className="text-sm text-gray-600 space-y-1">
@@ -616,6 +505,16 @@ const VoucherMapContent = ({
                           </span>
                         </p>
                         <p className="text-xs text-gray-500 mt-2">{voucher.addr1}</p>
+                      </div>
+
+                      <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+                        <span className="text-xs text-gray-400">회원수: {voucher.memberCount}명</span>
+                        <div className="flex items-center gap-1 text-red-500">
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                          </svg>
+                          <span className="text-xs font-medium">{voucher.likeCnt}</span>
+                        </div>
                       </div>
                     </div>
                   );

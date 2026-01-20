@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
-import { fetchVouchers } from '@/api/voucher';
+import { useQuery, useInfiniteQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { fetchVouchers, likeVoucher, unlikeVoucher } from '@/api/voucher';
+import { toast } from 'react-toastify';
+import type { VoucherItem } from '@/api/voucher';
 
+import LoadingSpinner from '@/components/common/LoadingSpinner';
 import VoucherMapContent from './VoucherMapContent';
 import VoucherListContent from './VoucherListContent';
 import { AREA_OPTIONS } from '@/constants/AreaOptions';
@@ -19,6 +22,7 @@ import { SPORTS_OPTIONS } from '@/constants/SportsOptions';
  * @returns VoucherContent 컴포넌트
  */
 const VoucherContent = () => {
+  const queryClient = useQueryClient();
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   // 필터 상태 (자연어로 저장)
@@ -27,11 +31,92 @@ const VoucherContent = () => {
   const [isLocationDetected, setIsLocationDetected] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
 
+  // 좋아요 추가 (React Query Mutation 사용)
+  const likeVoucherMutation = useMutation({
+    mutationFn: likeVoucher,
+    onMutate: async (voucherId: number) => {
+      await queryClient.cancelQueries({ queryKey: ['vouchers'] });
+      const previousData = queryClient.getQueryData(['vouchers']);
+
+      queryClient.setQueryData(['vouchers'], (oldData: any) => {
+        if (!oldData) return oldData;
+
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page: any) => ({
+            ...page,
+            content: page.content.map((voucher: VoucherItem) =>
+              voucher.id === voucherId
+                ? { ...voucher, myLike: true, likeCnt: voucher.likeCnt + 1 }
+                : voucher,
+            ),
+          })),
+        };
+      });
+
+      return { previousData };
+    },
+    onError: (_error, _voucherId, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['vouchers'], context.previousData);
+      }
+      toast.error('좋아요에 실패했습니다.');
+    },
+    onSuccess: () => {
+      // 성공 시 서버 데이터로 동기화 (백그라운드)
+      queryClient.invalidateQueries({ queryKey: ['vouchers'] });
+    },
+  });
+
+  // 좋아요 취소 (React Query Mutation 사용)
+  const unlikeVoucherMutation = useMutation({
+    mutationFn: unlikeVoucher,
+    onMutate: async (voucherId: number) => {
+      await queryClient.cancelQueries({ queryKey: ['vouchers'] });
+      const previousData = queryClient.getQueryData(['vouchers']);
+
+      queryClient.setQueryData(['vouchers'], (oldData: any) => {
+        if (!oldData) return oldData;
+
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page: any) => ({
+            ...page,
+            content: page.content.map((voucher: VoucherItem) =>
+              voucher.id === voucherId
+                ? { ...voucher, myLike: false, likeCnt: Math.max(0, voucher.likeCnt - 1) }
+                : voucher,
+            ),
+          })),
+        };
+      });
+
+      return { previousData };
+    },
+    onError: (_error, _voucherId, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(['vouchers'], context.previousData);
+      }
+      toast.error('좋아요 취소에 실패했습니다.');
+    },
+    onSuccess: () => {
+      // 성공 시 서버 데이터로 동기화 (백그라운드)
+      queryClient.invalidateQueries({ queryKey: ['vouchers'] });
+    },
+  });
+
+  const handleLike = (voucherId: number) => {
+    likeVoucherMutation.mutate(voucherId);
+  };
+
+  const handleUnlike = (voucherId: number) => {
+    unlikeVoucherMutation.mutate(voucherId);
+  };
+
   // 사용자 위치 기반 초기 지역 설정
   useEffect(() => {
     const detectUserLocation = () => {
       if (!navigator.geolocation) {
-        console.log('⚠️ Geolocation을 지원하지 않는 브라우저입니다.');
         setIsLocationDetected(true);
         return;
       }
@@ -39,7 +124,6 @@ const VoucherContent = () => {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude } = position.coords;
-          console.log('📍 사용자 위치:', { latitude, longitude });
           setUserLocation({ lat: latitude, lng: longitude });
 
           // 간단한 위도/경도 기반 지역 추정
@@ -69,15 +153,12 @@ const VoucherContent = () => {
 
           if (detectedArea) {
             setArea(detectedArea);
-            console.log('✅ 감지된 지역:', detectedArea);
           } else {
-            console.log('⚠️ 지역 감지 실패, 전체 검색으로 진행');
           }
 
           setIsLocationDetected(true);
         },
-        (error) => {
-          console.log('⚠️ 위치 정보를 가져올 수 없습니다:', error.message);
+        () => {
           setIsLocationDetected(true);
         },
         {
@@ -127,12 +208,6 @@ const VoucherContent = () => {
   useEffect(() => {
     if (isLocationDetected && !isListLoading && !isMapLoading && isInitialLoad) {
       setIsInitialLoad(false);
-      console.log('✅ 초기 데이터 로드 완료:', {
-        area: area || '전체',
-        sports: sports || '전체',
-        리스트결과: `${listVouchers.length} 개`,
-        지도결과: `${mapData?.content.length || 0} 개`,
-      });
     }
   }, [
     isLocationDetected,
@@ -147,17 +222,13 @@ const VoucherContent = () => {
   ]);
 
   // 초기 로딩만 전체 화면 표시
+
   if (!isLocationDetected || (isInitialLoad && loading)) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4" />
-          <div className="text-gray-600 font-medium">
-            {!isLocationDetected ? '📍 위치 정보를 확인하는 중...' : '로딩 중...'}
-          </div>
-          <p className="text-sm text-gray-400 mt-2">주변 스포츠바우처를 찾고 있습니다</p>
-        </div>
-      </div>
+      <LoadingSpinner
+        message={!isLocationDetected ? '📍 위치 정보를 확인하는 중...' : '로딩 중...'}
+        description="주변 스포츠바우처를 찾고 있습니다"
+      />
     );
   }
 
@@ -193,9 +264,11 @@ const VoucherContent = () => {
       {viewMode === 'map' ? (
         <VoucherMapContent
           vouchers={mapVouchers}
-          filterProps={{ ...filterProps, page: 0, setPage: () => {}, totalPages: 0 }} // 지도 뷰에서는 페이지네이션 사용 안함
+          filterProps={{ ...filterProps, page: 0, setPage: () => { }, totalPages: 0 }} // 지도 뷰에서는 페이지네이션 사용 안함
           userLocation={userLocation}
           onSwitchToList={() => setViewMode('list')}
+          onLike={handleLike}
+          onUnlike={handleUnlike}
         />
       ) : (
         <VoucherListContent
@@ -205,6 +278,8 @@ const VoucherContent = () => {
           fetchNextPage={fetchNextPage}
           hasNextPage={hasNextPage}
           isFetchingNextPage={isFetchingNextPage}
+          onLike={handleLike}
+          onUnlike={handleUnlike}
         />
       )}
     </div>

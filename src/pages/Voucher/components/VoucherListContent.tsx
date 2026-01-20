@@ -6,6 +6,7 @@ import FacilityIcon from '@/components/icon/FacilityIcon';
 import Icon from '@/components/icon/Icon';
 import { SPORTS_ICONS } from '@/constants/SportsIcons';
 import IconName from '@/constants/IconName';
+import { useAuth } from '@/context/AuthContext';
 
 interface VoucherListContentProps {
   vouchers: VoucherItem[];
@@ -14,6 +15,8 @@ interface VoucherListContentProps {
   fetchNextPage: () => void;
   hasNextPage: boolean | undefined;
   isFetchingNextPage: boolean;
+  onLike: (voucherId: number) => void;
+  onUnlike: (voucherId: number) => void;
 }
 
 const VoucherListContent = ({
@@ -23,8 +26,20 @@ const VoucherListContent = ({
   fetchNextPage,
   hasNextPage,
   isFetchingNextPage,
+  onLike,
+  onUnlike,
 }: VoucherListContentProps) => {
   const { area, sports, setArea, setSports, areaOptions, sportsOptions } = filterProps;
+  const { userInfo } = useAuth();
+
+  const handleLikeClick = (voucher: VoucherItem) => {
+    if (!userInfo) return;
+    if (voucher.myLike) {
+      onUnlike(voucher.id);
+    } else {
+      onLike(voucher.id);
+    }
+  };
 
   const observerTarget = useRef<HTMLDivElement>(null);
 
@@ -47,7 +62,7 @@ const VoucherListContent = ({
 
   return (
     <>
-      <div className="px-4">
+      <div className="px-4 bg-white">
         {/* 필터 영역 */}
         <div className="mb-4 space-y-2 pt-4">
           <div className="flex gap-2">
@@ -56,7 +71,7 @@ const VoucherListContent = ({
               onChange={(e) => {
                 setArea(e.target.value);
               }}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-lg text-sm"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 bg-white shadow-lg text-sm"
             >
               <option value="">전체 지역</option>
               {areaOptions.map((option) => (
@@ -70,7 +85,7 @@ const VoucherListContent = ({
               onChange={(e) => {
                 setSports(e.target.value);
               }}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-lg text-sm"
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 bg-white shadow-lg text-sm"
             >
               <option value="">전체 종목</option>
               {sportsOptions.map((option) => (
@@ -83,7 +98,7 @@ const VoucherListContent = ({
             <div className="flex justify-end">
               <button
                 onClick={onSwitchToMap}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 bg-white shadow-lg text-sm font-medium hover:bg-gray-50 transition-colors"
               >
                 지도 뷰
               </button>
@@ -102,13 +117,26 @@ const VoucherListContent = ({
                 className="relative bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
               >
                 <button
-                  className="absolute top-4 right-4 p-1 z-10 hover:scale-110 transition-transform"
+                  className={`absolute top-4 right-4 p-1 z-10 hover:scale-110 transition-transform ${!userInfo ? 'opacity-50 cursor-not-allowed' : ''}`}
                   onClick={(e) => {
                     e.stopPropagation();
-                    // 추후 좋아요 기능 구현
+                    handleLikeClick(voucher);
                   }}
+                  disabled={!userInfo}
                 >
-                  <Icon src={IconName.HEART_EMPTY} alt="찜하기" className="w-6 h-6" />
+                  <svg
+                    className={`w-6 h-6 ${voucher.myLike ? 'text-red-500' : 'text-gray-400'}`}
+                    fill={voucher.myLike ? 'currentColor' : 'none'}
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                    />
+                  </svg>
                 </button>
                 <div className="flex items-center gap-2 mb-2">
                   <h3 className="font-bold text-lg text-gray-800">{voucher.name}</h3>
@@ -149,8 +177,14 @@ const VoucherListContent = ({
                   <p className="text-xs text-gray-500 mt-2">{voucher.addr1}</p>
                   {voucher.addr2 && <p className="text-xs text-gray-500">{voucher.addr2}</p>}
                 </div>
-                <div className="mt-3 pt-3 border-t border-gray-100">
+                <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
                   <span className="text-xs text-gray-400">회원수: {voucher.memberCount}명</span>
+                  <div className="flex items-center gap-1 text-red-500">
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                    <span className="text-xs font-medium">{voucher.likeCnt}</span>
+                  </div>
                 </div>
               </div>
             ))}
