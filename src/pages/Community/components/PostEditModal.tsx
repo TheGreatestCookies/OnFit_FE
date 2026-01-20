@@ -1,16 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useMediaUpload from '@/hooks/useMediaUpload';
 import type { MediaInfo } from '@/types/Media/MediaInfo';
+import type { Post } from '@/api/community';
 import { toast } from 'react-toastify';
 
-interface PostWriteModalProps {
+interface PostEditModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (content: string, mediaInfos: MediaInfo[]) => Promise<void>;
+  post: Post;
+  onUpdate: (postId: number, content: string, mediaInfos: MediaInfo[]) => Promise<void>;
 }
 
-const PostWriteModal = ({ isOpen, onClose, onSubmit }: PostWriteModalProps) => {
-  const [content, setContent] = useState('');
+const PostEditModal = ({ isOpen, onClose, post, onUpdate }: PostEditModalProps) => {
+  const [content, setContent] = useState(post.content);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const {
     imageInfos,
@@ -21,26 +23,36 @@ const PostWriteModal = ({ isOpen, onClose, onSubmit }: PostWriteModalProps) => {
     removeImage,
   } = useMediaUpload({ maxImages: 10 });
 
+  // 기존 이미지 URL을 MediaInfo 형태로 변환
+  useEffect(() => {
+    if (post.imageUrls && post.imageUrls.length > 0) {
+      const existingImages: MediaInfo[] = post.imageUrls.map((url, index) => ({
+        id: index,
+        presignedUrl: url,
+      }));
+      setImageInfos(existingImages);
+    }
+  }, [post.imageUrls, setImageInfos]);
+
   const handleClose = () => {
-    setContent('');
-    setImageInfos([]);
+    setContent(post.content);
     onClose();
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedContent = content.trim();
-    
+
     if (!trimmedContent) {
       toast.error('내용을 입력해주세요.');
       return;
     }
-    
+
     if (trimmedContent.length < 10) {
       toast.error('내용은 최소 10글자 이상 입력해주세요.');
       return;
     }
-    
+
     if (trimmedContent.length > 200) {
       toast.error('내용은 최대 200글자까지 입력 가능합니다.');
       return;
@@ -48,13 +60,12 @@ const PostWriteModal = ({ isOpen, onClose, onSubmit }: PostWriteModalProps) => {
 
     try {
       setIsSubmitting(true);
-      await onSubmit(trimmedContent, imageInfos);
-      // 성공 시 모달 닫기 및 폼 초기화
+      await onUpdate(post.id, trimmedContent, imageInfos);
+      toast.success('게시글이 수정되었습니다.');
       handleClose();
     } catch (error) {
-      console.error('글 작성 실패:', error);
-      toast.error('글 작성에 실패했습니다. 다시 시도해주세요.');
-      // 에러 발생 시 모달은 열어두고 사용자가 다시 시도할 수 있도록 함
+      console.error('글 수정 실패:', error);
+      toast.error('글 수정에 실패했습니다.');
     } finally {
       setIsSubmitting(false);
     }
@@ -67,7 +78,7 @@ const PostWriteModal = ({ isOpen, onClose, onSubmit }: PostWriteModalProps) => {
       <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[80vh] overflow-y-auto">
         {/* 헤더 */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900">글 작성</h2>
+          <h2 className="text-xl font-bold text-gray-900">글 수정</h2>
           <button
             onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -85,7 +96,7 @@ const PostWriteModal = ({ isOpen, onClose, onSubmit }: PostWriteModalProps) => {
         </div>
 
         {/* 폼 */}
-        <form onSubmit={handleSubmit} className="p-4">
+        <form onSubmit={handleUpdate} className="p-4">
           <div className="relative">
             <textarea
               value={content}
@@ -122,6 +133,7 @@ const PostWriteModal = ({ isOpen, onClose, onSubmit }: PostWriteModalProps) => {
                     type="button"
                     onClick={() => removeImage(index)}
                     className="absolute -top-1 -right-1 bg-gray-800 text-white rounded-full p-1 hover:bg-gray-700"
+                    disabled={isSubmitting}
                   >
                     <svg
                       className="w-3 h-3"
@@ -190,7 +202,7 @@ const PostWriteModal = ({ isOpen, onClose, onSubmit }: PostWriteModalProps) => {
               className="flex-1 px-4 py-3 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isSubmitting || isUploading}
             >
-              {isSubmitting ? '작성 중...' : isUploading ? '업로드 중...' : '작성'}
+              {isSubmitting ? '수정 중...' : isUploading ? '업로드 중...' : '수정'}
             </button>
           </div>
         </form>
@@ -199,5 +211,5 @@ const PostWriteModal = ({ isOpen, onClose, onSubmit }: PostWriteModalProps) => {
   );
 };
 
-export default PostWriteModal;
+export default PostEditModal;
 
