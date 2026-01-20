@@ -20,7 +20,7 @@ const CharacterIcon = ({
   className = '',
   style,
 }: CharacterIconProps) => {
-  const iconPath = `/characters/${src.charAt(0) + src.slice(1)}.svg`;
+  const iconPath = src;
   return (
     <img
       src={iconPath}
