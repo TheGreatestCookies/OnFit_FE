@@ -2,6 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ROUTE_PATH } from '@/constants/RoutePath';
 import Icon from '../icon/Icon';
 import IconName from '@/constants/IconName';
+import { useAuth } from '@/context/AuthContext';
 
 interface NavItem {
   icon: string;
@@ -13,14 +14,21 @@ const NAV_ITEMS: NavItem[] = [
   { icon: IconName.HOME, label: '홈', path: ROUTE_PATH.HOME },
   { icon: IconName.VOUCHER, label: '스포츠바우처', path: ROUTE_PATH.VOUCHER },
   { icon: IconName.COMMUNITY, label: '커뮤니티', path: ROUTE_PATH.COMMUNITY },
+  { icon: IconName.CHAT_RECORD_FOOTER, label: '내 운동', path: ROUTE_PATH.RECOMMENDATION_HISTORY },
   { icon: IconName.MY_PAGE, label: '마이페이지', path: ROUTE_PATH.MY_PAGE },
 ];
 
 const Footer = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isLoggedIn } = useAuth();
 
   const handleNavClick = (path: string) => {
+    // 추천 기록 페이지는 로그인이 필요
+    if (path === ROUTE_PATH.RECOMMENDATION_HISTORY && !isLoggedIn) {
+      navigate(ROUTE_PATH.LOGIN);
+      return;
+    }
     navigate(path);
   };
 
@@ -30,7 +38,7 @@ const Footer = () => {
 
   return (
     <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] h-16 bg-white border-t border-gray-200 z-30">
-      <div className="w-full h-full flex items-center justify-around px-4">
+      <div className="w-full h-full flex items-center justify-between px-6">
         {NAV_ITEMS.map((item) => {
           const active = isActive(item.path);
           return (
