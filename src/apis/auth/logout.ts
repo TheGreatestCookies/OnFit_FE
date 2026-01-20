@@ -1,6 +1,10 @@
 import apiInstance from '@/apis/apiInstance';
+import type { AxiosResponse } from 'axios';
 
-export const logout = async () => {
-  const response = await apiInstance.post('/auth/logout');
-  return response.data;
+export interface LogoutResponse {
+  message?: string;
+}
+
+export const logout = async (): Promise<AxiosResponse<LogoutResponse>> => {
+  return await apiInstance.post<LogoutResponse>('/auth/logout');
 };

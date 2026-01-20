@@ -33,6 +33,7 @@ interface AuthContextType {
   login: (data: LoginRequest) => Promise<void>;
   logout: () => Promise<void>;
   signup: (data: SignupRequest) => Promise<void>;
+  refreshUserInfo: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -58,7 +59,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     queryFn: async () => {
       try {
         const response = await getUserInfo();
-        console.log('React Query getUserInfo response:', response);
         return response?.data || null;
       } catch (error) {
         console.error('React Query getUserInfo error:', error);
@@ -78,14 +78,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const login = async (data: LoginRequest) => {
-    console.log('🔐 Login started');
     await apiLogin(data);
-    console.log('✅ Login API success');
     // 로그인 성공 후 사용자 정보를 다시 가져오기
     const response = await getUserInfo();
-    console.log('📥 getUserInfo response:', response);
     const newUserInfo = response?.data || null;
-    console.log('👤 Setting userInfo:', newUserInfo);
     setUserInfo(newUserInfo);
   };
 
@@ -104,9 +100,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const isLoggedIn = !!userInfo;
   const isInitialized = !isLoading;
 
-  console.log('🔍 isLoggedIn:', isLoggedIn);
-  console.log('🔍 isInitialized:', isInitialized);
-  console.log('🔍 userInfo:', userInfo);
 
   const value: AuthContextType = {
     isLoggedIn,
@@ -117,6 +110,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     logout,
     signup,
+    refreshUserInfo: () => queryClient.invalidateQueries({ queryKey: ['userInfo'] }),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
