@@ -15,6 +15,8 @@ export interface Voucher {
   facilityName: string;
   description: string;
   telephone: string;
+  likeCnt?: number;
+  myLike?: boolean;
 }
 
 export interface Video {

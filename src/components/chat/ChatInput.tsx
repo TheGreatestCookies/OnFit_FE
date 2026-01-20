@@ -44,7 +44,7 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="메시지를 입력하세요..."
-        className="flex-1 bg-gray-50 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none max-h-32"
+        className="flex-1 bg-gray-50 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-red-500 resize-none max-h-32"
         rows={1}
         disabled={disabled}
       />
@@ -53,7 +53,7 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
         disabled={!input.trim() || disabled}
         className={`p-2 rounded-full flex-shrink-0 transition-colors ${
           input.trim() && !disabled
-            ? 'bg-blue-500 text-white hover:bg-blue-600'
+            ? 'bg-red-500 text-white hover:bg-red-600'
             : 'bg-gray-200 text-gray-400 cursor-not-allowed'
         }`}
       >

@@ -1,16 +1,18 @@
 import apiInstance from '@/apis/apiInstance';
-import type { ChatRequest } from '@/types/ChatType';
+import type { ChatRequest, ChatResponse } from '@/types/ChatType';
+
+// 환경변수에서 API Base URL 가져오기
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 export const sendMessage = async (
     data: ChatRequest,
-    onChunk: (chunk: unknown) => void,
+    onChunk: (chunk: ChatResponse) => void,
     onComplete: () => void,
     onError: (error: unknown) => void,
 ) => {
     try {
-        console.log('[chatApi] 요청 시작:', data);
-        // 상대 경로를 사용하면 Vite 프록시가 자동으로 localhost:8080으로 전달
-        const response = await fetch('/api/chat', {
+        // 환경변수를 사용하여 직접 백엔드 URL로 요청
+        const response = await fetch(`${API_BASE_URL}/api/chat`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -20,56 +22,68 @@ export const sendMessage = async (
             body: JSON.stringify(data),
         });
 
-        console.log('[chatApi] 응답 상태:', response.status, response.statusText);
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const reader = response.body?.getReader();
-        const decoder = new TextDecoder();
+        const decoder = new TextDecoder('utf-8');
 
         if (!reader) {
             throw new Error('Response body is null');
         }
 
-        console.log('[chatApi] 스트림 읽기 시작');
-        let chunkCount = 0;
+        let buffer = ''; // 불완전한 라인을 저장할 버퍼
+
+        const processLine = (line: string) => {
+            const trimmedLine = line.trim();
+            if (trimmedLine.startsWith('data:')) {
+                // "data:" 또는 "data: " 다음의 JSON 추출
+                const jsonStr = trimmedLine.startsWith('data: ')
+                    ? trimmedLine.slice(6)
+                    : trimmedLine.slice(5);
+
+                if (jsonStr) {
+                    try {
+                        const parsed = JSON.parse(jsonStr);
+                        onChunk(parsed);
+                    } catch (e) {
+                        console.error('[chatApi] JSON 파싱 에러:', e, 'Line:', line);
+                    }
+                }
+            }
+        };
 
         while (true) {
             const { done, value } = await reader.read();
+            
             if (done) {
-                console.log('[chatApi] 스트림 완료, 총 chunk 수:', chunkCount);
+                // 마지막 디코딩 (남은 버퍼 처리)
+                const finalChunk = decoder.decode();
+                buffer += finalChunk;
+                if (buffer.trim()) {
+                    processLine(buffer);
+                }
                 break;
             }
 
-            const chunk = decoder.decode(value, { stream: true });
-            console.log('[chatApi] Raw chunk:', chunk);
-            const lines = chunk.split('\n');
+            // UTF-8 디코딩 (stream: true로 불완전한 문자 처리)
+            buffer += decoder.decode(value, { stream: true });
+            
+            // 완전한 라인만 처리
+            const lines = buffer.split('\n');
+            // 마지막 요소는 불완전한 라인일 수 있으므로 버퍼에 보관
+            buffer = lines.pop() || '';
 
+            // 완전한 라인들 처리
             for (const line of lines) {
-                const trimmedLine = line.trim();
-                if (trimmedLine.startsWith('data:')) {
-                    // "data:" 또는 "data: " 다음의 JSON 추출
-                    const jsonStr = trimmedLine.startsWith('data: ')
-                        ? trimmedLine.slice(6)
-                        : trimmedLine.slice(5);
-
-                    if (jsonStr) {
-                        try {
-                            const parsed = JSON.parse(jsonStr);
-                            console.log('[chatApi] Parsed chunk:', parsed);
-                            onChunk(parsed);
-                            chunkCount++;
-                        } catch (e) {
-                            console.error('[chatApi] JSON 파싱 에러:', e, 'Line:', line);
-                        }
-                    }
+                if (line.trim()) {
+                    processLine(line);
                 }
             }
         }
 
-        console.log('[chatApi] onComplete 호출');
         onComplete();
     } catch (error) {
         console.error('[chatApi] 에러 발생:', error);

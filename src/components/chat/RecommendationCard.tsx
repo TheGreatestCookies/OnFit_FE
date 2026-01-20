@@ -1,34 +1,42 @@
 import type { Voucher, Video } from '@/types/ChatType';
+import VoucherCard from '@/pages/Voucher/components/VoucherCard';
 
 interface RecommendationCardProps {
   type: 'recommend' | 'home_workout';
   vouchers?: Voucher[];
   videos?: Video[];
+  onLike?: (voucherId: number) => void;
+  onUnlike?: (voucherId: number) => void;
 }
 
-const RecommendationCard = ({ type, vouchers, videos }: RecommendationCardProps) => {
+const RecommendationCard = ({ type, vouchers, videos, onLike, onUnlike }: RecommendationCardProps) => {
   if (type === 'recommend' && vouchers) {
     return (
       <div className="flex flex-col gap-2 mt-2 w-full">
         {vouchers.map((voucher) => (
-          <div
+          <VoucherCard
             key={voucher.id}
-            className="bg-white p-3 rounded-lg shadow-sm border border-gray-100"
-          >
-            <div className="flex justify-between items-start">
-              <h4 className="font-bold text-sm text-gray-800">{voucher.name}</h4>
-              <span className="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full">
-                {voucher.category}
-              </span>
-            </div>
-            <p className="text-xs text-gray-500 mt-1">{voucher.facilityName}</p>
-            <div className="flex justify-between items-center mt-2">
-              <span className="text-xs text-gray-400">{voucher.distance}km</span>
-              <span className="text-sm font-semibold text-blue-600">
-                {voucher.price.toLocaleString()}원
-              </span>
-            </div>
-          </div>
+            voucher={{
+              ...voucher,
+              // Map missing fields with default values / correct like info
+              area: '',
+              areaCode: 0,
+              sports: voucher.category, // Map category to sports
+              sportsCode: 0,
+              sigunguCode: 0,
+              sigunguName: '',
+              addr1: '', // Chat API might not return full address
+              addr2: '',
+              zipCode: '',
+              memberCount: 0,
+              latitude: 0,
+              longitude: 0,
+              likeCnt: voucher.likeCnt ?? (voucher as any).likeCount ?? 0,
+              myLike: voucher.myLike ?? false,
+            }}
+            onLike={onLike}
+            onUnlike={onUnlike}
+          />
         ))}
       </div>
     );
